@@ -55,8 +55,6 @@
 <header class="header">
 <div class="header-title">Events</div>
 <div class="header-actions">
-<div class="icon-btn">🔔<div class="notif-dot"></div></div>
-<div class="icon-btn">📬</div>
 <div class="header-avatar">AM</div>
 </div>
 </header>
@@ -79,10 +77,6 @@
 <div class="filter-chip" onclick="toggleChip(this)">🏆 Hackathon</div>
 <div class="filter-chip" onclick="toggleChip(this)">🎓 Workshop</div>
 <div class="filter-chip" onclick="toggleChip(this)">🎙 AMA</div>
-<div class="view-toggle">
-<button class="vt-btn on" title="Grid view">⊞</button>
-<button class="vt-btn" title="List view">☰</button>
-</div>
 </div>
 <!-- Featured Event -->
 <div class="featured-event">
@@ -121,7 +115,7 @@
 </div>
 <div>
 <div class="seats-left">⚡ 52 seats left</div>
-<button class="btn-register u-extracted-141" onclick="this.classList.toggle('registered');this.textContent=this.classList.contains('registered')?'✓ Registered':'Register Now'">Register Now</button>
+<button id="featured-register" class="btn-register u-extracted-141" onclick="registerFeaturedEvent(this)">Register Now</button>
 </div>
 </div>
 </div>
@@ -254,6 +248,7 @@
 <div class="ev-card-footer">
 <div class="ev-attendees">👥 35 going</div>
 <button class="btn-ev registered" onclick="toggleReg(this)">✓ Registered</button>
+</div>
 </div>
 </div>
 </div>
@@ -423,6 +418,9 @@
 </div>
 </div>
 </div>
+</div>
+<div class="load-more-wrap" style="margin-top:20px;">
+  <button id="load-more-events-btn" class="btn-ghost" onclick="toggleLoadMoreEvents()">Load more</button>
 </div>
 </div><!-- end main -->
 <script src="../js/core/auth.js"></script>

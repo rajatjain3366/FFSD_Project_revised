@@ -168,3 +168,7 @@
   .section-header { display:flex; align-items:center; justify-content:space-between; }
   .section-title { font-family:'Syne',sans-serif; font-size:16px; font-weight:700; }
   .section-sub { font-size:13px; color:var(--text-3); }
+  .load-more-wrap { text-align:center; margin-top:16px; }
+  #load-more-events-btn { font-family:'DM Sans',sans-serif; border:1px solid rgba(255,255,255,0.2); background:linear-gradient(135deg,var(--accent),var(--accent-2)); color:#fff; border-radius:10px; padding:10px 16px; cursor:pointer; transition:all 0.2s; position:fixed; bottom:18px; left:50%; transform:translateX(-50%); z-index:120; box-shadow:0 10px 30px rgba(0,0,0,0.45); }
+  #load-more-events-btn:hover { transform:translate(-50%,-1px); border-color:rgba(91,110,245,0.4); }
+  .load-more-wrap { display:none; }

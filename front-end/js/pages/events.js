@@ -55,6 +55,7 @@ window.toggleChip = function(el) {
 function filterEventGrid(filter) {
     const cards = document.querySelectorAll('.ev-card');
     let visibleCount = 0;
+    let shownCount = 0;
 
     cards.forEach(card => {
         const title = card.querySelector('.ev-card-title').textContent.toLowerCase();
@@ -65,16 +66,63 @@ function filterEventGrid(filter) {
                         title.includes(filter) || 
                         meta.includes(filter);
 
-        card.style.display = isMatch ? 'flex' : 'none';
-        if (isMatch) visibleCount++;
+        const shouldShow = isMatch && (upcomingExpanded || shownCount < UPCOMING_INITIAL_VISIBLE);
+        card.style.display = shouldShow ? 'flex' : 'none';
+        if (shouldShow) {
+            visibleCount++;
+            shownCount++;
+        }
     });
 
     // Update sub-header text
-    const subHeader = document.querySelector('.section-sub');
+    const subHeader = document.querySelector('#tab-upcoming .section-sub');
+    const total = document.querySelectorAll('.events-grid .ev-card').length;
     if (subHeader) {
-        subHeader.textContent = `${visibleCount} events found for "${filter}"`;
+        subHeader.textContent = `${visibleCount} of ${total} events found for "${filter}"`;
+    }
+
+    // update load-more button label
+    const moreBtn = document.getElementById('load-more-events-btn');
+    if (moreBtn) {
+        const hiddenCount = Math.max(0, total - visibleCount);
+        moreBtn.textContent = hiddenCount > 0 ? `Load more (${hiddenCount})` : 'Show less';
     }
 }
+
+const UPCOMING_INITIAL_VISIBLE = 4;
+let upcomingExpanded = false;
+
+function updateUpcomingVisibility() {
+    const cards = document.querySelectorAll('.events-grid .ev-card');
+    const total = cards.length;
+    let visibleCount = 0;
+
+    cards.forEach((card, idx) => {
+        const isVisible = upcomingExpanded || idx < UPCOMING_INITIAL_VISIBLE;
+        card.style.display = isVisible ? 'flex' : 'none';
+        if (isVisible) visibleCount++;
+    });
+
+    const subHeader = document.querySelector('#tab-upcoming .section-sub');
+    if (subHeader) {
+        subHeader.textContent = `${visibleCount} of ${total} events across your communities`;
+    }
+
+    const moreBtn = document.getElementById('load-more-events-btn');
+    if (moreBtn) {
+        if (total <= UPCOMING_INITIAL_VISIBLE) {
+            moreBtn.style.display = 'none';
+        } else {
+            moreBtn.style.display = 'block';
+            moreBtn.textContent = upcomingExpanded ? 'Show less' : `Load more (${total - visibleCount})`;
+        }
+    }
+}
+
+window.toggleLoadMoreEvents = function() {
+    upcomingExpanded = !upcomingExpanded;
+    updateUpcomingVisibility();
+};
 
 // ==========================================
 // 4. REGISTRATION LOGIC
@@ -171,6 +219,105 @@ window.toggleReg = function(btn) {
         addToMyRegistrations(eventData);
     }
 };
+
+window.registerFeaturedEvent = function(btn) {
+    const featured = document.querySelector('.featured-event .feat-content');
+    if (!featured) return;
+
+    const title = featured.querySelector('.feat-title')?.textContent || 'March Hack Sprint 2025';
+    const dateText = featured.querySelector('.feat-meta-item')?.textContent || 'March 7 – 8, 2025';
+    const timeText = featured.querySelector('.feat-meta-item:nth-child(2)')?.textContent || 'Starts 2:00 PM IST';
+    const typeText = featured.querySelector('.feat-badge-row .ev-badge')?.textContent || '🌐 Online';
+
+    const eventData = {
+        title,
+        date: dateText.replace('🗓 ', ''),
+        time: timeText.replace('⏰ ', ''),
+        community: featured.querySelector('.feat-community .feat-comm-name')?.textContent.replace('Hosted by ', '') || 'Pro Gamers',
+        type: typeText,
+        category: '🏆 Hackathon'
+    };
+
+    if (!btn.classList.contains('registered')) {
+        btn.classList.add('registered');
+        btn.textContent = '✓ Registered';
+        addToMyRegistrations(eventData);
+        if (window.toast) window.toast(`Successfully registered for ${title}! 🎟`);
+    } else {
+        btn.classList.remove('registered');
+        btn.textContent = 'Register Now';
+        removeFromMyRegistrations(title);
+        if (window.toast) window.toast(`Registration canceled for ${title}.`);
+    }
+};
+
+function cancelRegistration(el) {
+    const regCard = el.closest('.reg-card');
+    if (!regCard) return;
+
+    const title = regCard.querySelector('.reg-title')?.textContent || '';
+    if (window.toast) window.toast(`Registration canceled for ${title}.`);
+    regCard.remove();
+    updateRegistrationCount();
+
+    // Reflect state in event list if matching card exists
+    const eventCard = Array.from(document.querySelectorAll('.ev-card')).find(c => c.querySelector('.ev-card-title')?.textContent === title);
+    if (eventCard) {
+        const btn = eventCard.querySelector('.btn-ev');
+        if (btn) {
+            btn.classList.remove('registered');
+            btn.textContent = 'Register';
+        }
+    }
+}
+
+function addToCalendar(el) {
+    const regCard = el.closest('.reg-card');
+    if (!regCard) return;
+
+    const title = regCard.querySelector('.reg-title')?.textContent || 'Gameunity Event';
+    const timeLine = regCard.querySelector('.reg-meta .reg-meta-item')?.textContent || '';
+    const dateText = regCard.querySelector('.reg-date-box .reg-mon')?.textContent + ' ' + regCard.querySelector('.reg-date-box .reg-day')?.textContent;
+
+    // Attempt simple date-time parse
+    const timeMatch = timeLine.match(/(\d{1,2}:\d{2}\s*(?:AM|PM)?)/i);
+    const timeStr = timeMatch ? timeMatch[1] : '17:00';
+    const monthMap = {Jan:1,Feb:2,Mar:3,Apr:4,May:5,Jun:6,Jul:7,Aug:8,Sep:9,Oct:10,Nov:11,Dec:12};
+    const [mon, day] = (dateText || '').split(' ');
+    const year = new Date().getFullYear();
+
+    let startDate, endDate;
+    if (monthMap[mon] && day) {
+        const dateString = `${year}-${String(monthMap[mon]).padStart(2, '0')}-${String(day).padStart(2, '0')} ${timeStr}`;
+        startDate = new Date(dateString);
+        if (isNaN(startDate)) {
+            startDate = new Date();
+        }
+    } else {
+        startDate = new Date();
+    }
+    endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
+
+    const toYmd = d => d.toISOString().replace(/[-:]|\.\d{3}/g, '');
+    const googleUrl = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${toYmd(startDate)}/${toYmd(endDate)}&details=${encodeURIComponent('Added via Gameunity event manager')}`;
+
+    window.open(googleUrl, '_blank');
+}
+
+// Attach click handling for dynamic and static row buttons
+document.addEventListener('click', function (e) {
+    if (e.target.closest('.btn-add-cal')) {
+        e.preventDefault();
+        addToCalendar(e.target.closest('.btn-add-cal'));
+        return;
+    }
+
+    if (e.target.closest('.btn-cancel')) {
+        e.preventDefault();
+        cancelRegistration(e.target.closest('.btn-cancel'));
+        return;
+    }
+});
 
 // ==========================================
 // 5. EVENT CREATION WIZARD
@@ -331,6 +478,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const today = new Date().toISOString().split('T')[0];
         dateField.setAttribute('min', today);
     }
+
+    updateUpcomingVisibility();
 
     const uploadArea = document.getElementById('uploadArea');
     const fileInput = document.getElementById('evCover');
