@@ -52,6 +52,8 @@
 .communities-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
 
 .comm-card {
+  text-decoration: none;
+  color: inherit;
   min-width: 160px; 
   max-width: 160px;
   background: var(--bg-card);
@@ -74,11 +76,27 @@
 .comm-card-banner {
   height: 50px; 
   border-radius: var(--radius-sm); 
-  margin-bottom: 10px;
+  margin-bottom: 10px; 
   position: relative; 
   overflow: hidden;
   border: 2px solid var(--bg-card);
   font-family: 'Syne', sans-serif;
+}
+
+.comm-card-icon {
+  position: absolute;
+  bottom: -10px;
+  left: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  z-index: 2;
+  border: 3px solid var(--bg-card); 
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }
 
 .comm-card-name { 
@@ -207,6 +225,8 @@
   border-radius: 20px; 
   cursor: pointer;
   transition: all var(--transition);
+  position: relative;
+  z-index: 2;
 }
 
 .btn-join:hover { 
@@ -231,7 +251,8 @@
 .notif-list { 
   display: flex; 
   flex-direction: column; 
-  gap: 2px; 
+  gap: 2px;
+  height: auto;
 }
 
 .notif-item {
@@ -252,6 +273,11 @@
 
 .notif-item.unread { 
   background: rgba(99,102,241,0.05); 
+}
+
+.notif-item.read {
+  background: transparent;
+  box-shadow: none;
 }
 
 .notif-avatar {
@@ -290,15 +316,6 @@
   font-size: 11px; 
   color: var(--text-muted); 
   margin-top: 3px; 
-}
-
-.notif-unread-dot { 
-  width: 7px; 
-  height: 7px; 
-  min-width: 7px; 
-  border-radius: 50%; 
-  background: var(--accent); 
-  margin-top: 5px; 
 }
 
 /* ── Events ── */
@@ -405,8 +422,8 @@
   background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(99,102,241,0.08));
   border: 1px solid rgba(99,102,241,0.15);
   border-radius: var(--radius-lg); 
-  padding: 22px 26px;
-  display: flex; 
+  padding: 22px 26px 26px 26px;
+  display: flex;
   align-items: center; 
   justify-content: space-between;
   position: relative; 
@@ -433,12 +450,17 @@
   font-size: 22px; 
   font-weight: 800;
   letter-spacing: -0.3px;
+  line-height: 1;
+  padding-bottom: 4px;
+  padding-top: 4px;
 }
 
 .greeting-sub { 
   font-size: 13px; 
   color: var(--text-secondary); 
-  margin-top: 4px; 
+  margin-top: 2px;
+  line-height: 1;
+  padding-bottom: 2px;
 }
 
 .greeting-stats {
@@ -449,7 +471,7 @@
 }
 
 .g-stat { 
-  text-align: center; 
+  text-align: center;
 }
 
 .g-stat-val { 
@@ -462,7 +484,7 @@
 .g-stat-label { 
   font-size: 11px; 
   color: var(--text-muted); 
-  margin-top: 2px; 
+  margin-top: -7px; 
 }
 
 /* Section Box */
