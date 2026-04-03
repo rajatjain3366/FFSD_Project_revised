@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Gameunity – Moderator Review Panel</title>
+<title>NexusHub – Moderator Review Panel</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&amp;display=swap" rel="stylesheet"/>
 <link href="../css/global.css" rel="stylesheet"/>
 <link href="../css/pages/mod-panel.css" rel="stylesheet"/>
@@ -52,15 +52,14 @@
     <div class="rail-avatar" onclick="window.location.href='profile-settings.html'" data-tooltip="Profile">AM<div class="rail-dot bg-dot-green" style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg-sidebar);"></div></div>
   </div>
 </aside>
-<aside class="sub-sidebar">
+<aside class="sub-sidebar" id="modSidebar">
 <div class="sub-header">
-Mod Panel
+<span>Mod Panel</span>
+<button class="sidebar-toggle" onclick="toggleSidebar()" id="sidebarToggle">‹</button>
 </div>
 <div class="nav-section">
 <div class="nav-label">Moderation Tools</div>
 <a href="#" class="nav-item active"><span class="nav-icon">🛡️</span> Reports <span class="nav-badge error">8</span></a>
-<a href="#" class="nav-item"><span class="nav-icon">⚖️</span> Appeals</a>
-<a href="#" class="nav-item"><span class="nav-icon">🤖</span> AutoMod Logs</a>
 <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> Back to App</a>
 </div>
 <div class="nav-section pb-6">
@@ -114,11 +113,7 @@ Mod Panel
 <span id="activeCommIcon">⚡</span>
 <span id="activeCommName">Pro Gamers</span>
 </div>
-<div class="header-stats">
-<div class="hstat"><div class="dot u-extracted-186"></div> <span id="openCount">8</span> Open</div>
-<div class="hstat"><div class="dot u-extracted-178"></div> 3 In Review</div>
-<div class="hstat"><div class="dot u-extracted-172"></div> 24 Resolved today</div>
-</div>
+
 <div class="header-actions">
 <div class="icon-btn" onclick="showToast('🔔','No new alerts')">🔔</div>
 <div class="icon-btn" onclick="showToast('⚙️','Mod settings')">⚙️</div>
@@ -144,11 +139,7 @@ Mod Panel
 <div class="detail-panel">
 <div class="dp-header">
 <div class="dp-title" id="dpTitle">Report #4821 — BadActor_X in #general</div>
-<div class="dp-tabs">
-<div class="dp-tab on" onclick="setDpTab(this,'content')">Content</div>
-<div class="dp-tab" onclick="setDpTab(this,'history')">User History</div>
-<div class="dp-tab" onclick="setDpTab(this,'previous')">Prior Actions</div>
-</div>
+<div class="dp-action" id="dpAction">Last action: None</div>
 </div>
 <div class="dp-body">
 <!-- CONTENT TAB -->
@@ -161,7 +152,7 @@ Mod Panel
 </div>
 <span class="reporter-anon">🔒 Anonymous</span>
 </div>
-<div class="reason-card">
+<div class="reason-card">-
 <div class="rc-header">
 <div class="rc-icon">🚫</div>
 <div class="rc-title">Hate Speech or Discrimination</div>
@@ -175,17 +166,17 @@ Mod Panel
 <div class="ctx-av u-extracted-208">TC</div>
 <div class="ctx-body">
 <div class="u-extracted-281">
-<span class="ctx-name u-extracted-158">Tom Chen</span>
+<span class="ctx-name u-extracted-158">Rahul Kumar</span>
 <span class="ctx-time">10:24 AM</span>
 </div>
 <div class="ctx-text">Hey everyone! Just getting started with FPS — any tips for someone coming from vanilla JS?</div>
 </div>
 </div>
 <div class="context-msg">
-<div class="ctx-av grad-green">LP</div>
+<div class="ctx-av grad-green">AK</div>
 <div class="ctx-body">
 <div class="u-extracted-281">
-<span class="ctx-name u-extracted-167">Leo Perez</span>
+<span class="ctx-name u-extracted-167">Arjun Kumar</span>
 <span class="ctx-time">10:25 AM</span>
 </div>
 <div class="ctx-text">Welcome! I'd start with the official docs and try building a small project. Hooks are your best friend 👋</div>
@@ -196,8 +187,8 @@ Mod Panel
 <div class="ctx-body">
 <div class="u-extracted-282">
 <span class="ctx-name u-extracted-283">BadActor_X</span>
-<span class="ctx-time">10:28 AM</span>
 <span class="u-extracted-284">🚩 FLAGGED</span>
+<span class="ctx-time">10:28 AM</span>
 </div>
 <div class="ctx-text">Everyone in this channel is absolutely pathetic. You're all <span class="u-extracted-285">failures who couldn't code</span> your way out of a paper bag. Stop wasting everyone's time 🤮</div>
 </div>
@@ -206,8 +197,8 @@ Mod Panel
 <div class="ctx-av grad-purple">SL</div>
 <div class="ctx-body">
 <div class="u-extracted-281">
-<span class="ctx-name u-extracted-157">Sara Lee</span>
-<span class="u-extracted-286">MOD</span>
+<span class="ctx-name u-extracted-157">Mina Dixit</span>
+<span class="ctx-mod-badge">MOD</span>
 <span class="ctx-time">10:29 AM</span>
 </div>
 <div class="ctx-text">@BadActor_X Please keep the conversation respectful. This is your final warning.</div>
@@ -297,6 +288,7 @@ Mod Panel
 </div>
 <div class="action-section">
 <div class="action-section-title">Take Action</div>
+<div id="actionStatus" class="action-status">No action yet</div>
 <button class="act-btn btn-warn" onclick="takeAction('warn')">
 <span class="act-icon">⚠️</span><span class="act-label">Issue Warning</span><span class="act-key">W</span>
 </button>
