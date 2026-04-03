@@ -1,5 +1,5 @@
 /**
- * Gameunity — Report Content Logic
+ * NexusHub — Report Content Logic
  * Handles multi-step reporting, content previewing, and submission states.
  */
 
@@ -107,6 +107,34 @@ window.submitReport = function() {
     btn.textContent = 'Submitting report...';
     btn.disabled = true;
 
+    const reportedUser = document.querySelector('.mp-name')?.textContent || 'UnknownUser';
+    const reportedChannel = document.querySelector('.mp-ch')?.textContent || '#general';
+    const reasonText = document.getElementById('rvReason')?.textContent || 'Unknown reason';
+    const contextText = document.getElementById('rvContext')?.textContent || 'No additional context';
+
+    const newReport = {
+        id: `#${Math.floor(4900 + Math.random() * 100)}`,
+        user: reportedUser,
+        av: reportedUser.split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase(),
+        bg: 'linear-gradient(135deg,#60A5FA,#4F46E5)',
+        channel: reportedChannel,
+        reason: reasonText,
+        badge: 'pending',
+        repeat: null,
+        time: 'just now',
+        violations: 0,
+        days: 1,
+        bans: 0,
+        warnings: 0,
+        sub: 'Reported via channel',
+        unread: true,
+        action: 'Report submitted',
+    };
+
+    const stored = JSON.parse(localStorage.getItem('modPanelNewReports') || '[]');
+    stored.unshift(newReport);
+    localStorage.setItem('modPanelNewReports', JSON.stringify(stored));
+
     // Simulate API submission
     setTimeout(() => {
         document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -116,7 +144,7 @@ window.submitReport = function() {
         if (successPanel) successPanel.classList.add('active');
         if (stepper) stepper.style.opacity = '0'; // Hide progress bar on success
         
-        if (window.toast) window.toast("Report successfully logged. ID: RPT-039471");
+        if (window.toast) window.toast(`Report successfully logged. ID: ${newReport.id}`);
     }, 1200);
 };
 
