@@ -15,7 +15,7 @@ let activeFilter = "all";
  * Only gamers (and higher roles) can create events
  */
 function enforceCreateEventPermissions() {
-  const user = getCurrentUser();
+  const user = window.getCurrentUser();
 
   // If user is not logged in or is an audience member, hide create event UI
   if (!user || user.role === "audience") {
@@ -176,8 +176,8 @@ async function renderDynamicEvents() {
   const eventsGrid = document.querySelector(".events-grid");
   if (!eventsGrid) return;
 
-  // Clear existing static/mock cards if any (optional, or append)
-  // eventsGrid.innerHTML = ''; 
+  // Clear existing static/mock cards to show real backend data
+  eventsGrid.innerHTML = ''; 
 
   response.forEach((event) => {
     const eventCard = document.createElement("div");
@@ -545,7 +545,7 @@ window.setType = function (el, type) {
     .querySelectorAll(".type-opt")
     .forEach((o) => o.classList.remove("on"));
   el.classList.add("on");
-  updatePreview();
+  window.updatePreview();
 };
 
 let selectedCoverImageFile = null;
@@ -690,7 +690,7 @@ function resetCreateForm() {
   showUploadPreview(null);
   document.querySelector(".type-opt.on")?.classList.remove("on");
   document.querySelector(".type-opt")?.classList.add("on");
-  updatePreview();
+  window.updatePreview();
 }
 
 // ==========================================
@@ -788,7 +788,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   if (publishBtn) {
-    publishBtn.addEventListener("click", (event) => {
+    publishBtn.addEventListener("click", async (event) => {
       event.preventDefault();
 
       const title = document.getElementById("evTitle").value.trim();
@@ -820,11 +820,21 @@ document.addEventListener("DOMContentLoaded", () => {
       const description = document.querySelector("#tab-create textarea")?.value || "No description provided.";
 
       // Payload for NestJS backend
+      let isoDate;
+      try {
+        isoDate = new Date(`${date}T${time}`).toISOString();
+      } catch (e) {
+        if (window.toast) window.toast("Invalid date or time format.", { type: "error" });
+        publishBtn.disabled = false;
+        publishBtn.textContent = "Publish Event";
+        return;
+      }
+
       const payload = {
         title: title,
         description: description,
         communityId: 1, // Defaulting to 1 for prototype
-        date: new Date(`${date}T${time}`).toISOString()
+        date: isoDate
       };
 
       try {
@@ -859,7 +869,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Keep live preview in sync as the user types / selects
   ["evTitle", "evDate", "evTime"].forEach((id) => {
     const input = document.getElementById(id);
-    if (input) input.addEventListener("input", updatePreview);
+    if (input) input.addEventListener("input", window.updatePreview);
   });
 
   console.log("Events module initialized. Happy hosting! 📅");
