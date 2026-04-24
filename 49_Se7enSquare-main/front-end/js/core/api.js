@@ -46,45 +46,37 @@ export async function fetchData(endpoint, options = {}) {
         }
 
         // --- AUTH INTERCEPTOR ---
-        // Automatically inject the token if the user is logged in
         const user = JSON.parse(localStorage.getItem('nexus_user'));
         const headers = {
             'Content-Type': 'application/json',
             ...options.headers
         };
-        if (user?.token) {
-            headers['Authorization'] = `Bearer ${user.token}`;
+        
+        // Map frontend roles to backend roles
+        const roleMap = {
+            'superuser': 'admin',
+            'mod': 'moderator',
+            'gamer': 'user',
+            'audience': 'user'
+        };
+
+        if (user?.role) {
+            headers['x-role'] = roleMap[user.role] || 'user';
         }
 
-        // --- MOCK LOGIC (For frontend Prototype) ---
-        // Remove this block once the Strategy is fully integrated
-        if (MOCK_DATA[endpoint]) {
-            // Simulate 300ms network latency
-            await new Promise(resolve => setTimeout(resolve, 300));
-            return { 
-                success: true, 
-                data: MOCK_DATA[endpoint],
-                source: 'mock' 
-            };
-        }
-
-        // --- REAL FETCH (Disabled for prototype) ---
-        /*
+        // --- REAL FETCH ---
         const response = await fetch(url, { ...options, headers });
         if (!response.ok) {
-            throw new Error(`HTTP Error: ${response.status}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `HTTP Error: ${response.status}`);
         }
         return await response.json();
-        */
-
-        // Fallback for non-mocked endpoints in prototype
-        return { success: true, message: "Endpoint hit (Prototype Mode)", data: {} };
 
     } catch (error) {
         console.error(`%c[API ERROR] %cFailed to fetch ${endpoint}:`, "color: #ef4444; font-weight: bold;", "color: #fff;", error);
         
         if (window.toast) {
-            window.toast("⚠️ Connection error. Please try again.");
+            window.toast(`⚠️ ${error.message}`);
         }
         
         return { success: false, error: error.message };

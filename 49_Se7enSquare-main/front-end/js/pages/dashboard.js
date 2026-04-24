@@ -1,16 +1,29 @@
-/**
- * Gameunity — Home Dashboard Logic
- * Handles community interactions, join states, and notification management.
- */
+import { api } from '../core/api.js';
 
 // ==========================================
 // 1. STATE & MOCK DATA
 // ==========================================
 let unreadMessages = 12;
 
-// ==========================================
-// 2. SIDEBAR TOGGLE FUNCTIONALITY
-// ==========================================
+async function fetchDashboardStats() {
+  const stats = await api.get('/dashboard/stats');
+  if (stats) {
+    updateHeaderStatValue("Communities", stats.communitiesJoined);
+    updateHeaderStatValue("Friends", stats.friendsOnline);
+    updateHeaderStatValue("Level", stats.userLevel);
+  }
+}
+
+function updateHeaderStatValue(label, value) {
+  const stats = document.querySelectorAll(".g-stat");
+  stats.forEach((stat) => {
+    const statLabel = stat.querySelector(".g-stat-label");
+    if (statLabel && statLabel.textContent.trim().toLowerCase() === label.toLowerCase()) {
+      const valEl = stat.querySelector(".g-stat-val");
+      if (valEl) valEl.textContent = value;
+    }
+  });
+}
 
 /**
  * Toggles sidebar expansion state
@@ -159,6 +172,7 @@ function initHorizontalScroll() {
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
   initHorizontalScroll();
+  fetchDashboardStats();
 
   // 1. Hide pills for communities already visited in the past
   hideVisitedPills();

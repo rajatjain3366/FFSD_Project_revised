@@ -38,6 +38,9 @@ async function bootstrap() {
   mkdirSync(docsPath, { recursive: true });
   writeFileSync(join(docsPath, 'swagger.json'), JSON.stringify(document, null, 2), 'utf8');
 
+  app.setGlobalPrefix('api');
+  app.enableCors();
+
   await app.listen(3000);
 }
 

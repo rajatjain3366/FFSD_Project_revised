@@ -1,15 +1,10 @@
-/**
- * Gameunity — Events Module Logic
- * Handles event discovery filtering, registration states, and the creation wizard.
- */
+import { api } from '../core/api.js';
 
 // ==========================================
 // 1. STATE & CONFIG
 // ==========================================
 let currentActiveTab = "upcoming";
 let activeFilter = "all";
-
-const COMMUNITY_EVENTS_STORAGE_KEY = "nexus_community_events";
 
 // ==========================================
 // 1.5 RBAC - HIDE CREATE EVENT FOR AUDIENCE
@@ -174,48 +169,50 @@ window.toggleLoadMoreEvents = function () {
 // 3.5 DYNAMIC EVENTS LOADING
 // ==========================================
 
-function loadEventsFromStorage() {
-  return JSON.parse(localStorage.getItem(COMMUNITY_EVENTS_STORAGE_KEY) || "[]");
-}
+async function renderDynamicEvents() {
+  const response = await api.get('/events');
+  if (!response || !Array.isArray(response)) return;
 
-function renderDynamicEvents() {
-  const events = loadEventsFromStorage();
-  const communities = JSON.parse(
-    localStorage.getItem("nexus_communities") || "[]",
-  );
   const eventsGrid = document.querySelector(".events-grid");
   if (!eventsGrid) return;
 
-  // Add dynamic events to the grid
-  events.forEach((event, index) => {
-    const community = communities.find((c) => c.id === event.communityId) || {};
+  // Clear existing static/mock cards if any (optional, or append)
+  // eventsGrid.innerHTML = ''; 
+
+  response.forEach((event) => {
     const eventCard = document.createElement("div");
     eventCard.className = "ev-card delay-dynamic";
     eventCard.setAttribute("data-event-id", event.id);
+    
+    const eventDate = new Date(event.date);
+    const month = eventDate.toLocaleString("en-US", { month: "short" });
+    const day = eventDate.getDate();
+    const time = eventDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+
     eventCard.innerHTML = `
             <div class="ev-card-banner" style="background: linear-gradient(135deg, var(--accent), var(--bg-card));">
-                <div class="ev-card-banner-inner">${community.emoji || "📅"}</div>
+                <div class="ev-card-banner-inner">📅</div>
                 <div class="ev-card-badges">
-                    <span class="ev-badge badge-online">${event.location || "Online"}</span>
+                    <span class="ev-badge badge-online">Online</span>
                 </div>
             </div>
             <div class="ev-card-body">
                 <div class="ev-card-top">
                     <div class="ev-date-box">
-                        <div class="ev-date-mon">${event.month || "TBD"}</div>
-                        <div class="ev-date-day">${event.day || ""}</div>
+                        <div class="ev-date-mon">${month}</div>
+                        <div class="ev-date-day">${day}</div>
                     </div>
                     <div>
                         <div class="ev-card-title">${event.title}</div>
                         <div class="ev-card-comm">
-                            <div class="ev-comm-av">${community.emoji || "⚡"}</div>
-                            <div class="ev-comm-name">${community.name || "Community"}</div>
+                            <div class="ev-comm-av">⚡</div>
+                            <div class="ev-comm-name">Community</div>
                         </div>
                     </div>
                 </div>
                 <div class="ev-card-meta">
-                    <div class="ev-meta-tag">⏰ ${event.time || "TBD"}</div>
-                    <div class="ev-meta-tag">${event.location || "🌐 Online"}</div>
+                    <div class="ev-meta-tag">⏰ ${time}</div>
+                    <div class="ev-meta-tag">🌐 Online</div>
                     <div class="ev-meta-tag">${event.description || "🎉 Event"}</div>
                 </div>
                 <div class="ev-card-footer">
@@ -227,7 +224,6 @@ function renderDynamicEvents() {
     eventsGrid.appendChild(eventCard);
   });
 
-  // Update visibility and counts
   updateUpcomingVisibility();
 }
 
@@ -812,37 +808,51 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      publishBtn.textContent = "✓ Published!";
-      publishBtn.style.background = "linear-gradient(135deg,#34D399,#059669)";
+      publishBtn.disabled = true;
+      publishBtn.textContent = "Publishing...";
 
       const type =
         document.querySelector(".type-opt.on")?.textContent.trim() || "Online";
-      const community =
+      const communityText =
         document.getElementById("evCommunity")?.value || "⚡ Pro Gamers";
       const category =
         document.getElementById("evCategory")?.value || "🏆 Hackathon";
-      const coverUrl = selectedCoverImageFile
-        ? URL.createObjectURL(selectedCoverImageFile)
-        : "";
+      const description = document.querySelector("#tab-create textarea")?.value || "No description provided.";
 
-      appendEventToUpcoming({
-        title,
-        date,
-        time,
-        type,
-        community,
-        category,
-        coverUrl,
-      });
+      // Payload for NestJS backend
+      const payload = {
+        title: title,
+        description: description,
+        communityId: 1, // Defaulting to 1 for prototype
+        date: new Date(`${date}T${time}`).toISOString()
+      };
 
-      if (window.toast) window.toast("Event published successfully! 🎉");
+      try {
+        const response = await api.post('/events', payload);
+        
+        if (response && response.id) {
+          publishBtn.textContent = "✓ Published!";
+          publishBtn.style.background = "linear-gradient(135deg,#34D399,#059669)";
+          
+          if (window.toast) window.toast("Event published successfully! 🎉");
 
-      setTimeout(() => {
-        publishBtn.textContent = "Publish Event";
-        publishBtn.style.background = "";
-      }, 2500);
+          // Refresh the grid
+          const grid = document.querySelector(".events-grid");
+          if (grid) grid.innerHTML = '';
+          await renderDynamicEvents();
 
-      resetCreateForm();
+          resetCreateForm();
+        }
+      } catch (err) {
+        console.error("Failed to publish event:", err);
+        if (window.toast) window.toast("Failed to publish event. Check console.");
+      } finally {
+        setTimeout(() => {
+          publishBtn.disabled = false;
+          publishBtn.textContent = "Publish Event";
+          publishBtn.style.background = "";
+        }, 2500);
+      }
     });
   }
 
