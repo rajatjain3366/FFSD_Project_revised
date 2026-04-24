@@ -1,0 +1,331 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Se7enSquare Backend API",
+    "description": "In-memory NestJS backend for frontend integration and academic evaluation",
+    "version": "1.0"
+  },
+  "components": {
+    "securitySchemes": {
+      "x-role": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-role",
+        "description": "RBAC role header: admin | moderator | user"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "username": { "type": "string" },
+          "email": { "type": "string" },
+          "role": { "type": "string", "enum": ["admin", "moderator", "user"] },
+          "bio": { "type": "string" }
+        },
+        "required": ["id", "username", "email", "role"]
+      },
+      "Community": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "ownerId": { "type": "integer" },
+          "tags": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["id", "name", "description", "ownerId", "tags"]
+      },
+      "Event": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "description": { "type": "string" },
+          "communityId": { "type": "integer" },
+          "date": { "type": "string", "format": "date-time" }
+        },
+        "required": ["id", "title", "description", "communityId", "date"]
+      },
+      "Post": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "content": { "type": "string" },
+          "communityId": { "type": "integer" },
+          "authorId": { "type": "integer" }
+        },
+        "required": ["id", "title", "content", "communityId", "authorId"]
+      },
+      "Report": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "reporterId": { "type": "integer" },
+          "targetType": { "type": "string", "enum": ["post", "user", "community"] },
+          "targetId": { "type": "integer" },
+          "reason": { "type": "string" },
+          "status": {
+            "type": "string",
+            "enum": ["open", "in_review", "resolved", "rejected"]
+          }
+        },
+        "required": ["id", "reporterId", "targetType", "targetId", "reason", "status"]
+      },
+      "DashboardStats": {
+        "type": "object",
+        "properties": {
+          "totalUsers": { "type": "integer" },
+          "totalCommunities": { "type": "integer" },
+          "totalEvents": { "type": "integer" },
+          "totalPosts": { "type": "integer" },
+          "openReports": { "type": "integer" },
+          "inReviewReports": { "type": "integer" }
+        },
+        "required": [
+          "totalUsers",
+          "totalCommunities",
+          "totalEvents",
+          "totalPosts",
+          "openReports",
+          "inReviewReports"
+        ]
+      }
+    },
+    "parameters": {
+      "RoleHeader": {
+        "name": "x-role",
+        "in": "header",
+        "required": true,
+        "schema": {
+          "type": "string",
+          "enum": ["admin", "moderator", "user"]
+        },
+        "description": "Role for RBAC"
+      }
+    }
+  },
+  "paths": {
+    "/users": {
+      "get": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/User" } } }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/users/{id}": {
+      "get": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "patch": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/communities": {
+      "get": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/Community" } }
+          }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/communities/{id}": {
+      "get": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "patch": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/events": {
+      "get": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Event" } } }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/events/{id}": {
+      "get": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "patch": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/posts": {
+      "get": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Post" } } }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/posts/{id}": {
+      "get": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "patch": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/reports": {
+      "get": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "post": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Report" } } }
+        },
+        "responses": { "201": { "description": "Created" } }
+      }
+    },
+    "/reports/{id}": {
+      "get": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "OK" } }
+      },
+      "patch": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Updated" } }
+      },
+      "delete": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "responses": { "200": { "description": "Deleted" } }
+      }
+    },
+    "/reports/{id}/status": {
+      "patch": {
+        "parameters": [
+          { "$ref": "#/components/parameters/RoleHeader" },
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": ["open", "in_review", "resolved", "rejected"]
+                  }
+                },
+                "required": ["status"]
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Updated" } }
+      }
+    },
+    "/dashboard/stats": {
+      "get": {
+        "parameters": [{ "$ref": "#/components/parameters/RoleHeader" }],
+        "responses": { "200": { "description": "OK" } }
+      }
+    }
+  }
+}
