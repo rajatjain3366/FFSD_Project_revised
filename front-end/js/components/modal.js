@@ -1,4 +1,9 @@
 /**
+ * DEPRECATED/TODO - modal.js
+ * AUDIT FIX: This file is currently orphaned and not imported by any HTML page.
+ * Keep for reference if backend integration is planned, otherwise safe to delete.
+ */
+/**
  * Gameunity — Reusable Modal System
  * Provides a promise-based API for confirmations, forms, and alerts.
  */

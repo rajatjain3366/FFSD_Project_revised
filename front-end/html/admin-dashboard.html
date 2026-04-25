@@ -4,10 +4,13 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<meta name="description" content="Gameunity Admin Dashboard — Platform management, user oversight, moderation controls, and analytics for administrators."/>
 <title>Gameunity — Admin Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
 <link href="../css/global.css" rel="stylesheet"/>
+<link href="../css/components/sidebar.css" rel="stylesheet"/>
 <link href="../css/pages/admin-dashboard.css" rel="stylesheet"/>
+<link href="../css/pages/rbac-nav.css" rel="stylesheet"/>
 </head>
 <body>
 <!-- ═══ SIDEBAR ═══ -->
@@ -21,39 +24,53 @@
 
   <a href="profile-settings.html" class="rail-item" data-tooltip="Settings">⚙️</a>
   <div class="rail-divider"></div>
-  <div class="rail-item rail-comm grad-purple" data-tooltip="Pro Gamers">⚡<div class="rail-dot bg-dot-green"></div></div>
-  <div class="rail-item rail-comm grad-orange" data-tooltip="RPG Tavern">🎨<div class="rail-dot bg-dot-green"></div></div>
-  <div class="rail-item rail-comm grad-cyan" data-tooltip="GameZone">🎮<div class="rail-dot bg-dot-orange"></div></div>
-  <div class="rail-item rail-comm grad-green" data-tooltip="FPS Masters">🌿<div class="rail-dot bg-dot-gray"></div></div>
-  <div class="rail-item rail-comm grad-pink" data-tooltip="SpeedRunners">🎵<div class="rail-dot bg-dot-green"></div></div>
-  <a href="create-community.html" class="rail-item" data-tooltip="Create Community" style="background:rgba(255,255,255,0.05);color:var(--text-1);font-weight:600;border-radius:14px;">✚</a>
+  <a href="community-page.html?name=pro-gamers" class="rail-item rail-comm grad-purple" data-tooltip="Pro Gamers">⚡<div class="rail-dot bg-dot-green"></div></a>
+  <a href="community-page.html?name=rpg-tavern" class="rail-item rail-comm grad-orange" data-tooltip="RPG Tavern">🎨<div class="rail-dot bg-dot-green"></div></a>
+  <a href="community-page.html?name=gamezone" class="rail-item rail-comm grad-cyan" data-tooltip="GameZone">🎮<div class="rail-dot bg-dot-orange"></div></a>
+  <a href="community-page.html?name=fps-masters" class="rail-item rail-comm grad-green" data-tooltip="FPS Masters">🌿<div class="rail-dot bg-dot-gray"></div></a>
+  <a href="community-page.html?name=speedrunners" class="rail-item rail-comm grad-pink" data-tooltip="SpeedRunners">🎵<div class="rail-dot bg-dot-green"></div></a>
+  <a href="create-community.html" class="rail-item rail-create-btn" data-tooltip="Create Community">✚</a>
   
   <div class="rail-footer">
-    <div class="rail-avatar" onclick="window.location.href='profile-settings.html'" data-tooltip="Profile">AM<div class="rail-dot bg-dot-green" style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg-sidebar);"></div></div>
+    <div class="rail-avatar" onclick="window.location.href='profile-settings.html'" data-tooltip="Profile">AM<div class="rail-avatar-dot bg-dot-green"></div></div>
   </div>
 </aside>
 
     <!-- ═══ SUB-SIDEBAR ═══ -->
-    <aside class="sub-sidebar">
-        <div class="sub-header" style="display:flex;align-items:center;gap:8px;">
-            Gameunity <span class="su-badge" style="background:var(--error);color:#fff;padding:2px 6px;border-radius:6px;font-size:10px;">SUPER</span>
+    <aside class="sub-sidebar" id="adminSubSidebar">
+        <div class="sub-header">
+            <span class="sub-title">Admin Panel <span class="nav-badge" style="background:var(--danger);color:#fff;">ADMIN</span></span>
+            <button type="button" class="sidebar-toggle" onclick="toggleSubSidebar()" aria-label="Toggle sidebar"><span class="toggle-icon">‹</span></button>
         </div>
-        <div class="nav-section">
-            <div class="nav-label">System Control</div>
-            <a href="superuser-dashboard.html" class="nav-item"><span class="nav-icon">📊</span> Overview</a>
-            <a href="superuser-dashboard.html" class="nav-item"><span class="nav-icon">👤</span> User Management <span class="nav-badge">148K</span></a>
-            <a href="superuser-dashboard.html" class="nav-item"><span class="nav-icon">🏘️</span> Communities</a>
-            <a href="superuser-dashboard.html" class="nav-item"><span class="nav-icon">🛡️</span> Moderation</a>
-            <a href="superuser-dashboard.html" class="nav-item"><span class="nav-icon">📅</span> Events</a>
-            <a href="superuser-dashboard.html" class="nav-item"><span class="nav-icon">📋</span> Audit Log</a>
-            <a href="superuser-dashboard.html" class="nav-item"><span class="nav-icon">⚙️</span> Platform Config</a>
-        </div>
-        <div class="nav-section">
-            <div class="nav-label">Quick Links</div>
-            <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span> End-User View</a>
-            <a href="#" class="nav-item active"><span class="nav-icon">📈</span> Admin Dashboard</a>
-            <a href="mod-panel.html" class="nav-item"><span class="nav-icon">🔍</span> Mod Panel</a>
-        </div>
+        <nav class="nav-scroll">
+          <div class="nav-section">
+            <div class="nav-section-header" onclick="toggleSection('sec-admin-system')">
+              <span class="nav-label">System Control</span>
+              <span class="nav-chevron" id="chev-sec-admin-system">▾</span>
+            </div>
+            <div class="nav-items" id="sec-admin-system">
+              <a href="#" class="nav-item" onclick="navTo('dashboard', this)"><span class="nav-icon">📊</span><span class="nav-item-text">Overview</span></a>
+              <a href="#" class="nav-item" onclick="navTo('users', this)"><span class="nav-icon">👤</span><span class="nav-item-text">User Management</span><span class="nav-badge">148K</span></a>
+              <a href="#" class="nav-item" onclick="navTo('communities', this)"><span class="nav-icon">🏘️</span><span class="nav-item-text">Communities</span></a>
+              <a href="#" class="nav-item" onclick="navTo('moderation', this)"><span class="nav-icon">🛡️</span><span class="nav-item-text">Moderation</span></a>
+              <a href="#" class="nav-item" onclick="navTo('events', this)"><span class="nav-icon">📅</span><span class="nav-item-text">Events</span></a>
+              <a href="#" class="nav-item" onclick="navTo('reports', this)"><span class="nav-icon">🚨</span><span class="nav-item-text">Reports</span></a>
+              <a href="#" class="nav-item" onclick="navTo('analytics', this)"><span class="nav-icon">📋</span><span class="nav-item-text">Analytics</span></a>
+              <a href="#" class="nav-item" onclick="navTo('broadcast', this)"><span class="nav-icon">📣</span><span class="nav-item-text">Broadcast</span></a>
+            </div>
+          </div>
+          <div class="nav-section">
+            <div class="nav-section-header" onclick="toggleSection('sec-admin-links')">
+              <span class="nav-label">Quick Links</span>
+              <span class="nav-chevron" id="chev-sec-admin-links">▾</span>
+            </div>
+            <div class="nav-items" id="sec-admin-links">
+              <a href="dashboard.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-item-text">End-User View</span></a>
+              <a href="#" class="nav-item active"><span class="nav-icon">📈</span><span class="nav-item-text">Admin Dashboard</span></a>
+              <a href="mod-panel.html" class="nav-item"><span class="nav-icon">🛡️</span><span class="nav-item-text">Mod Panel</span></a>
+            </div>
+          </div>
+        </nav>
     </aside>
 <!-- ═══ MAIN ═══ -->
 <div class="main">
@@ -343,6 +360,10 @@
 </div>
 </div>
 <div id="toast"></div>
+<script src="../js/core/auth.js"></script>
+<script src="../js/components/app-rail.js"></script>
+<script src="../js/components/sidebar.js"></script>
+<script src="../js/components/rbac-nav.js"></script>
 <script src="../js/pages/admin.js"></script>
 <script src="../js/components/notifications.js"></script>
 </body>

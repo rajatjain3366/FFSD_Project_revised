@@ -247,3 +247,50 @@
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.6; transform: scale(1.3); }
 }
+
+/* ── App rail expanded: panel links align with main rail items ── */
+.app-rail.expanded .rbac-section {
+    width: 100%;
+    align-self: stretch;
+}
+
+.app-rail.expanded .rbac-divider {
+    width: 100%;
+}
+
+.app-rail.expanded .rbac-panel-link {
+    width: 100%;
+    height: 44px;
+    margin: 2px 0;
+    justify-content: flex-start;
+    padding: 0 14px;
+    border-radius: 12px;
+}
+
+.app-rail.expanded .rbac-panel-link[data-tooltip]::after {
+    content: attr(data-tooltip);
+    display: flex !important;
+    align-items: center;
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    opacity: 1;
+    margin-left: 12px;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+    color: var(--text-2, #9ca3af);
+    font-size: 14px;
+    font-weight: 500;
+    pointer-events: none;
+}
+
+.app-rail.expanded .rbac-panel-link:hover[data-tooltip]::after {
+    color: var(--text-1, #f3f4f6);
+}
+
+.app-rail.expanded .rbac-panel-link:hover {
+    transform: translateX(2px);
+}

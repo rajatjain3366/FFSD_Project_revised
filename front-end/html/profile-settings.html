@@ -38,7 +38,7 @@
         <div class="tb-btn" onclick="location.reload()">Discard</div>
         <button class="tb-btn save" id="btnSaveAll" onclick="saveAllChanges()" disabled>Save Changes</button>
         <div class="tb-av" id="topBarAvatar">Loading</div>
-        <button class="logout-btn" onclick="logout()" data-tooltip="Logout">🚪</button>
+        <button type="button" class="logout-btn" onclick="logoutUser()" aria-label="Log out" data-tooltip="Logout">🚪</button>
       </div>
     </div>
     
@@ -348,7 +348,7 @@
                 <div class="dz-label">Log Out</div>
                 <div class="dz-desc">Sign out of your session on this device.</div>
               </div>
-              <button class="btn-danger" onclick="logout()">Log Out</button>
+              <button type="button" class="btn-danger" onclick="logoutUser()">Log Out</button>
             </div>
           </div>
         </div>
@@ -384,6 +384,9 @@
     </div>
   </div>
 
-  <script src="../js/pages/profile_settings.js"></script>
+  <script src="../js/core/auth.js"></script>
+  <script src="../js/components/app-rail.js"></script>
+  <script src="../js/components/rbac-nav.js"></script>
+  <script src="../js/pages/profile-settings.js"></script>
 </body>
 </html>
