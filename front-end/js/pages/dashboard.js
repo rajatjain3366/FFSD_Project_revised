@@ -9,19 +9,8 @@
 let unreadMessages = 12;
 
 // ==========================================
-// 2. SIDEBAR TOGGLE FUNCTIONALITY
+// 2. SIDEBAR — app rail handled by ../js/components/app-rail.js (toggleSidebar)
 // ==========================================
-
-/**
- * Toggles sidebar expansion state
- * Switches between compact (72px) and expanded (240px) modes
- */
-window.toggleSidebar = function () {
-  const sidebar = document.getElementById("sidebar");
-  if (sidebar) {
-    sidebar.classList.toggle("expanded");
-  }
-};
 
 window.toggleJoin = function (btn) {
   const card = btn.closest(".rec-card");
@@ -170,20 +159,6 @@ document.addEventListener("DOMContentLoaded", () => {
       markCommunityAsVisited(this.getAttribute("href"));
     });
   });
-
-  // --- BULLETPROOF: Sidebar Click-Outside Logic ---
-  const mainContentArea = document.querySelector(".main");
-
-  if (mainContentArea) {
-    mainContentArea.addEventListener("click", () => {
-      const sidebar = document.getElementById("sidebar");
-
-      // If the sidebar exists and is open, close it!
-      if (sidebar && sidebar.classList.contains("expanded")) {
-        sidebar.classList.remove("expanded");
-      }
-    });
-  }
 
   updateNotificationPersistence();
 

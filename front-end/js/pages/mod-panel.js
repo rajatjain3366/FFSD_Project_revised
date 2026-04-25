@@ -360,7 +360,7 @@ document.addEventListener('keydown', e => {
 // SIDEBAR TOGGLE
 // ==========================================
 
-window.toggleSidebar = function() {
+window.toggleModSidebar = function() {
     const sidebar = document.getElementById('modSidebar');
     if (sidebar) {
         sidebar.classList.toggle('collapsed');

@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Gameunity – Home Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<meta name="description" content="Gameunity Home Dashboard — Browse joined communities, upcoming events, and notifications."/>
 
 <link rel="stylesheet" href="../css/global.css"/>
 <link rel="stylesheet" href="../css/pages/dashboard.css"/>
@@ -15,14 +16,14 @@
 <!-- ─── APP RAIL ─── -->
 <aside class="app-rail" id="sidebar">
   <div class="rail-logo">⬡</div>
-  <div class="rail-toggle" onclick="toggleSidebar()">☰</div>
+  <div class="rail-toggle"><span class="rail-toggle-icon" aria-hidden="true">⟩</span></div>
   
   <div class="rail-divider"></div>
   
   <!-- Main Nav -->
   <a href="dashboard.html" class="rail-item active" data-tooltip="Home">🏠</a>
   <a href="discovery.html" class="rail-item" data-tooltip="Discover">🔍</a>
-  <a href="events.html" class="rail-item" data-tooltip="Events">📅<div class="notif-dot" style="background:var(--gold);width:6px;height:6px;"></div></a>
+  <a href="events.html" class="rail-item" data-tooltip="Events">📅<div class="notif-dot"></div></a>
   <a href="profile-settings.html" class="rail-item" data-tooltip="Settings">⚙️</a>
   
   <div class="rail-divider"></div>
@@ -47,10 +48,10 @@
     📚<div class="rail-dot bg-dot-gray"></div>
   </a>
   
-  <a href="create-community.html" class="rail-item" data-tooltip="Create Community" style="background:rgba(255,255,255,0.05);color:var(--text-1);font-weight:600;border-radius:14px;">✚</a>
+  <a href="create-community.html" class="rail-item rail-create-btn" data-tooltip="Create Community">✚</a>
   
   <div class="rail-footer">
-    <div class="rail-avatar" onclick="window.location.href='profile-settings.html'" data-tooltip="Profile">AM<div class="rail-dot bg-dot-green" style="position:absolute;bottom:-2px;right:-2px;width:12px;height:12px;border-radius:50%;border:2px solid var(--bg-sidebar);"></div></div>
+    <div class="rail-avatar" onclick="window.location.href='profile-settings.html'" data-tooltip="Profile">AM<div class="rail-avatar-dot bg-dot-green"></div></div>
   </div>
 </aside>
 
@@ -67,7 +68,7 @@
       <div class="icon-btn">🔔<div class="notif-dot"></div></div>
       <div class="icon-btn">📬</div>
       <div class="header-avatar">AM</div>
-      <button class="logout-btn" onclick="logout()" data-tooltip="Logout">🚪</button>
+      <button type="button" class="logout-btn" onclick="logoutUser()" aria-label="Log out" data-tooltip="Logout">🚪</button>
     </div>
   </header>
 
@@ -292,6 +293,7 @@
 </div>
 
 <script src="../js/core/auth.js"></script>
+<script src="../js/components/app-rail.js"></script>
 <script src="../js/components/rbac-nav.js"></script>
 <script src="../js/pages/dashboard.js"></script>
 <script src="../js/components/notifications.js"></script>
