@@ -20,12 +20,13 @@ async function bootstrap() {
     .setTitle('Se7enSquare Backend API')
     .setDescription('In-memory NestJS backend for frontend integration and academic evaluation')
     .setVersion('1.0')
+    .addServer('http://localhost:3000', 'Local Dev Server')
     .addApiKey(
       {
         type: 'apiKey',
         in: 'header',
         name: 'x-role',
-        description: 'RBAC role header: admin | moderator | user',
+        description: 'RBAC role header: admin | moderator | user | gamer',
       },
       'x-role',
     )
@@ -39,7 +40,12 @@ async function bootstrap() {
   writeFileSync(join(docsPath, 'swagger.json'), JSON.stringify(document, null, 2), 'utf8');
 
   app.setGlobalPrefix('api');
-  app.enableCors();
+  app.enableCors({
+    origin: true, // allow all origins (dev/demo mode)
+    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'x-role', 'Authorization'],
+    credentials: false,
+  });
 
   await app.listen(3000);
 }

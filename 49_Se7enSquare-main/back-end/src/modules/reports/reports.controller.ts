@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -10,7 +11,9 @@ import {
 import {
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiHeader,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -27,7 +30,11 @@ import { ReportsService } from './reports.service';
 @ApiHeader({
   name: 'x-role',
   required: true,
-  description: 'Role for RBAC: admin | moderator | user',
+  description:
+    'RBAC role header. Accepted values: admin | moderator | user. ' +
+    'GET requires admin or moderator. POST requires any valid role. ' +
+    'PATCH status requires admin or moderator. DELETE requires admin.',
+  schema: { type: 'string', enum: ['admin', 'moderator', 'user'] },
 })
 @Controller('reports')
 export class ReportsController {
@@ -35,31 +42,63 @@ export class ReportsController {
 
   @Get()
   @Roles(AppRole.ADMIN, AppRole.MODERATOR)
-  @ApiOperation({ summary: 'List reports' })
-  @ApiOkResponse({ type: ReportDto, isArray: true })
+  @ApiOperation({
+    summary: 'List all reports',
+    description: 'Returns all reports. Only accessible by admin or moderator roles.',
+  })
+  @ApiOkResponse({ type: ReportDto, isArray: true, description: 'Array of report records' })
+  @ApiForbiddenResponse({ description: 'Only admin or moderator can view reports' })
   findAll() {
     return this.reportsService.findAll();
   }
 
   @Post()
   @Roles(AppRole.USER, AppRole.MODERATOR, AppRole.ADMIN)
-  @ApiOperation({ summary: 'Create report' })
-  @ApiBody({ type: CreateReportDto })
-  @ApiCreatedResponse({ type: ReportDto })
+  @ApiOperation({
+    summary: 'Submit a report',
+    description: 'Creates a new report (content or user report). Any authenticated role may submit a report. Status defaults to "pending".',
+  })
+  @ApiBody({ type: CreateReportDto, description: 'Report submission payload (reporterId, targetType, targetId, reason)' })
+  @ApiCreatedResponse({ type: ReportDto, description: 'The newly submitted report with status: pending' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   create(@Body() payload: CreateReportDto) {
     return this.reportsService.create(payload);
   }
 
   @Patch(':id/status')
   @Roles(AppRole.ADMIN, AppRole.MODERATOR)
-  @ApiOperation({ summary: 'Update report status (pending -> reviewed -> resolved)' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiBody({ type: UpdateReportStatusDto })
-  @ApiOkResponse({ type: ReportDto })
+  @ApiOperation({
+    summary: 'Update report status',
+    description:
+      'Advances a report through the status lifecycle: pending → reviewed → resolved. ' +
+      'Requires x-role: admin or moderator.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric report ID' })
+  @ApiBody({
+    type: UpdateReportStatusDto,
+    description: 'New status value. Allowed: pending | reviewed | resolved',
+  })
+  @ApiOkResponse({ type: ReportDto, description: 'The report with updated status' })
+  @ApiNotFoundResponse({ description: 'Report not found' })
+  @ApiForbiddenResponse({ description: 'Only admin or moderator can update report status' })
   updateStatus(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpdateReportStatusDto,
   ) {
     return this.reportsService.updateStatus(id, payload.status);
+  }
+
+  @Delete(':id')
+  @Roles(AppRole.ADMIN)
+  @ApiOperation({
+    summary: 'Delete a report',
+    description: 'Permanently removes a report record. Requires x-role: admin.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric report ID to delete' })
+  @ApiOkResponse({ schema: { example: { message: 'Report 1 deleted' } }, description: 'Deletion confirmation' })
+  @ApiNotFoundResponse({ description: 'Report not found' })
+  @ApiForbiddenResponse({ description: 'Only admin can delete reports' })
+  remove(@Param('id', ParseIntPipe) id: number) {
+    return this.reportsService.remove(id);
   }
 }

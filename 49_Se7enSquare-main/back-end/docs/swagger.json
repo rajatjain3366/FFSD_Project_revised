@@ -4,21 +4,27 @@
     "/users": {
       "get": {
         "operationId": "UsersController_findAll",
-        "summary": "Get all users",
+        "summary": "List all users",
+        "description": "Returns every user in the in-memory store. Accessible by any valid role.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. POST / PATCH / DELETE require admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Array of user records",
             "content": {
               "application/json": {
                 "schema": {
@@ -29,6 +35,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
           }
         },
         "tags": [
@@ -37,20 +46,27 @@
       },
       "post": {
         "operationId": "UsersController_create",
-        "summary": "Create user",
+        "summary": "Create a new user",
+        "description": "Creates a user record. Requires x-role: admin.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. POST / PATCH / DELETE require admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           }
         ],
         "requestBody": {
           "required": true,
+          "description": "User creation payload",
           "content": {
             "application/json": {
               "schema": {
@@ -61,7 +77,7 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The newly created user",
             "content": {
               "application/json": {
                 "schema": {
@@ -69,6 +85,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin can create users"
           }
         },
         "tags": [
@@ -79,21 +98,28 @@
     "/users/{id}": {
       "get": {
         "operationId": "UsersController_findOne",
-        "summary": "Get one user by id",
+        "summary": "Get a single user by ID",
+        "description": "Fetches one user record by their numeric ID.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. POST / PATCH / DELETE require admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric user ID",
             "schema": {
               "type": "number"
             }
@@ -101,7 +127,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The matching user record",
             "content": {
               "application/json": {
                 "schema": {
@@ -109,6 +135,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
+          },
+          "404": {
+            "description": "User not found"
           }
         },
         "tags": [
@@ -117,21 +149,28 @@
       },
       "patch": {
         "operationId": "UsersController_update",
-        "summary": "Update user",
+        "summary": "Update an existing user",
+        "description": "Partially updates a user (all fields optional). Requires x-role: admin.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. POST / PATCH / DELETE require admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric user ID to update",
             "schema": {
               "type": "number"
             }
@@ -139,6 +178,7 @@
         ],
         "requestBody": {
           "required": true,
+          "description": "Fields to update (all optional)",
           "content": {
             "application/json": {
               "schema": {
@@ -149,7 +189,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
+            "description": "The updated user record",
             "content": {
               "application/json": {
                 "schema": {
@@ -157,6 +197,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin can update users"
+          },
+          "404": {
+            "description": "User not found"
           }
         },
         "tags": [
@@ -165,21 +211,28 @@
       },
       "delete": {
         "operationId": "UsersController_remove",
-        "summary": "Delete user",
+        "summary": "Delete a user",
+        "description": "Permanently deletes a user and cascades to their memberships, posts, and reports. Requires x-role: admin.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. POST / PATCH / DELETE require admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric user ID to delete",
             "schema": {
               "type": "number"
             }
@@ -187,7 +240,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Deletion confirmation",
             "content": {
               "application/json": {
                 "schema": {
@@ -197,6 +250,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin can delete users"
+          },
+          "404": {
+            "description": "User not found"
           }
         },
         "tags": [
@@ -207,21 +266,27 @@
     "/communities": {
       "get": {
         "operationId": "CommunitiesController_findAll",
-        "summary": "Get all communities",
+        "summary": "List all communities",
+        "description": "Returns all communities including enriched UI fields (icon, category, slug, memberCount, onlineCount).",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Array of community records",
             "content": {
               "application/json": {
                 "schema": {
@@ -232,6 +297,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
           }
         },
         "tags": [
@@ -240,20 +308,27 @@
       },
       "post": {
         "operationId": "CommunitiesController_create",
-        "summary": "Create community",
+        "summary": "Create a community",
+        "description": "Creates a new community. Any authenticated role may create a community.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           }
         ],
         "requestBody": {
           "required": true,
+          "description": "Community creation payload (name, description, ownerId, tags)",
           "content": {
             "application/json": {
               "schema": {
@@ -264,7 +339,7 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The newly created community",
             "content": {
               "application/json": {
                 "schema": {
@@ -272,6 +347,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
           }
         },
         "tags": [
@@ -282,21 +360,28 @@
     "/communities/{id}": {
       "get": {
         "operationId": "CommunitiesController_findOne",
-        "summary": "Get community by id",
+        "summary": "Get a single community by ID",
+        "description": "Fetches one community by its numeric ID, including all display fields.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric community ID",
             "schema": {
               "type": "number"
             }
@@ -304,7 +389,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The matching community record",
             "content": {
               "application/json": {
                 "schema": {
@@ -312,6 +397,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
+          },
+          "404": {
+            "description": "Community not found"
           }
         },
         "tags": [
@@ -320,21 +411,28 @@
       },
       "patch": {
         "operationId": "CommunitiesController_update",
-        "summary": "Update community",
+        "summary": "Update a community",
+        "description": "Partially updates a community. All fields are optional.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric community ID to update",
             "schema": {
               "type": "number"
             }
@@ -342,6 +440,7 @@
         ],
         "requestBody": {
           "required": true,
+          "description": "Fields to update (all optional)",
           "content": {
             "application/json": {
               "schema": {
@@ -352,7 +451,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
+            "description": "The updated community record",
             "content": {
               "application/json": {
                 "schema": {
@@ -360,6 +459,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
+          },
+          "404": {
+            "description": "Community not found"
           }
         },
         "tags": [
@@ -368,21 +473,28 @@
       },
       "delete": {
         "operationId": "CommunitiesController_remove",
-        "summary": "Delete community",
+        "summary": "Delete a community",
+        "description": "Permanently deletes a community and cascades to related memberships and events. Requires x-role: admin.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET endpoints require any valid role. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric community ID to delete",
             "schema": {
               "type": "number"
             }
@@ -390,7 +502,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Deletion confirmation",
             "content": {
               "application/json": {
                 "schema": {
@@ -400,6 +512,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin can delete communities"
+          },
+          "404": {
+            "description": "Community not found"
           }
         },
         "tags": [
@@ -410,21 +528,41 @@
     "/events": {
       "get": {
         "operationId": "EventsController_findAll",
-        "summary": "Get all events",
+        "summary": "List all events",
+        "description": "Returns all events. Optionally filter by status query param (upcoming | past | cancelled).",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET / POST require any valid role. PATCH requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
+            }
+          },
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "description": "Filter events by status",
+            "schema": {
+              "enum": [
+                "upcoming",
+                "past",
+                "cancelled"
+              ],
               "type": "string"
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Array of event records",
             "content": {
               "application/json": {
                 "schema": {
@@ -435,6 +573,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
           }
         },
         "tags": [
@@ -443,20 +584,27 @@
       },
       "post": {
         "operationId": "EventsController_create",
-        "summary": "Create event",
+        "summary": "Create an event",
+        "description": "Creates a new event linked to a community. Any authenticated role may create events.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET / POST require any valid role. PATCH requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           }
         ],
         "requestBody": {
           "required": true,
+          "description": "Event creation payload",
           "content": {
             "application/json": {
               "schema": {
@@ -467,7 +615,7 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The newly created event",
             "content": {
               "application/json": {
                 "schema": {
@@ -475,6 +623,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
           }
         },
         "tags": [
@@ -485,21 +636,28 @@
     "/events/{id}": {
       "get": {
         "operationId": "EventsController_findOne",
-        "summary": "Get event by id",
+        "summary": "Get a single event by ID",
+        "description": "Fetches one event by its numeric ID.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET / POST require any valid role. PATCH requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric event ID",
             "schema": {
               "type": "number"
             }
@@ -507,7 +665,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "The matching event record",
             "content": {
               "application/json": {
                 "schema": {
@@ -515,6 +673,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
+          },
+          "404": {
+            "description": "Event not found"
           }
         },
         "tags": [
@@ -523,21 +687,28 @@
       },
       "patch": {
         "operationId": "EventsController_update",
-        "summary": "Update event",
+        "summary": "Update an event",
+        "description": "Partially updates an event (all fields optional). Requires x-role: admin or moderator.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET / POST require any valid role. PATCH requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric event ID to update",
             "schema": {
               "type": "number"
             }
@@ -545,6 +716,7 @@
         ],
         "requestBody": {
           "required": true,
+          "description": "Fields to update (all optional)",
           "content": {
             "application/json": {
               "schema": {
@@ -555,7 +727,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
+            "description": "The updated event record",
             "content": {
               "application/json": {
                 "schema": {
@@ -563,6 +735,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin or moderator can update events"
+          },
+          "404": {
+            "description": "Event not found"
           }
         },
         "tags": [
@@ -571,21 +749,28 @@
       },
       "delete": {
         "operationId": "EventsController_remove",
-        "summary": "Delete event",
+        "summary": "Delete an event",
+        "description": "Permanently deletes an event. Requires x-role: admin.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET / POST require any valid role. PATCH requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric event ID to delete",
             "schema": {
               "type": "number"
             }
@@ -593,7 +778,7 @@
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Deletion confirmation",
             "content": {
               "application/json": {
                 "schema": {
@@ -603,6 +788,12 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin can delete events"
+          },
+          "404": {
+            "description": "Event not found"
           }
         },
         "tags": [
@@ -613,21 +804,27 @@
     "/reports": {
       "get": {
         "operationId": "ReportsController_findAll",
-        "summary": "List reports",
+        "summary": "List all reports",
+        "description": "Returns all reports. Only accessible by admin or moderator roles.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET requires admin or moderator. POST requires any valid role. PATCH status requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           }
         ],
         "responses": {
           "200": {
-            "description": "",
+            "description": "Array of report records",
             "content": {
               "application/json": {
                 "schema": {
@@ -638,6 +835,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin or moderator can view reports"
           }
         },
         "tags": [
@@ -646,20 +846,27 @@
       },
       "post": {
         "operationId": "ReportsController_create",
-        "summary": "Create report",
+        "summary": "Submit a report",
+        "description": "Creates a new report (content or user report). Any authenticated role may submit a report. Status defaults to \"pending\".",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET requires admin or moderator. POST requires any valid role. PATCH status requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           }
         ],
         "requestBody": {
           "required": true,
+          "description": "Report submission payload (reporterId, targetType, targetId, reason)",
           "content": {
             "application/json": {
               "schema": {
@@ -670,7 +877,7 @@
         },
         "responses": {
           "201": {
-            "description": "",
+            "description": "The newly submitted report with status: pending",
             "content": {
               "application/json": {
                 "schema": {
@@ -678,6 +885,9 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Missing or invalid x-role header"
           }
         },
         "tags": [
@@ -688,21 +898,28 @@
     "/reports/{id}/status": {
       "patch": {
         "operationId": "ReportsController_updateStatus",
-        "summary": "Update report status (pending -> reviewed -> resolved)",
+        "summary": "Update report status",
+        "description": "Advances a report through the status lifecycle: pending → reviewed → resolved. Requires x-role: admin or moderator.",
         "parameters": [
           {
             "name": "x-role",
             "in": "header",
-            "description": "Role for RBAC: admin | moderator | user",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET requires admin or moderator. POST requires any valid role. PATCH status requires admin or moderator. DELETE requires admin.",
             "required": true,
             "schema": {
-              "type": "string"
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
             }
           },
           {
             "name": "id",
             "required": true,
             "in": "path",
+            "description": "Numeric report ID",
             "schema": {
               "type": "number"
             }
@@ -710,6 +927,7 @@
         ],
         "requestBody": {
           "required": true,
+          "description": "New status value. Allowed: pending | reviewed | resolved",
           "content": {
             "application/json": {
               "schema": {
@@ -720,7 +938,7 @@
         },
         "responses": {
           "200": {
-            "description": "",
+            "description": "The report with updated status",
             "content": {
               "application/json": {
                 "schema": {
@@ -728,6 +946,67 @@
                 }
               }
             }
+          },
+          "403": {
+            "description": "Only admin or moderator can update report status"
+          },
+          "404": {
+            "description": "Report not found"
+          }
+        },
+        "tags": [
+          "reports"
+        ]
+      }
+    },
+    "/reports/{id}": {
+      "delete": {
+        "operationId": "ReportsController_remove",
+        "summary": "Delete a report",
+        "description": "Permanently removes a report record. Requires x-role: admin.",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "RBAC role header. Accepted values: admin | moderator | user. GET requires admin or moderator. POST requires any valid role. PATCH status requires admin or moderator. DELETE requires admin.",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "admin",
+                "moderator",
+                "user"
+              ]
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "description": "Numeric report ID to delete",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deletion confirmation",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Report 1 deleted"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Only admin can delete reports"
+          },
+          "404": {
+            "description": "Report not found"
           }
         },
         "tags": [
@@ -969,6 +1248,148 @@
           "dashboard"
         ]
       }
+    },
+    "/memberships": {
+      "get": {
+        "operationId": "MembershipsController_findAll",
+        "summary": "List all memberships, optionally filtered by communityId or userId",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Role for RBAC: admin | moderator | user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "communityId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "userId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": [
+                    {
+                      "id": 1,
+                      "userId": 3,
+                      "communityId": 1,
+                      "joinedAt": "2026-01-15T11:30:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "memberships"
+        ]
+      },
+      "post": {
+        "operationId": "MembershipsController_create",
+        "summary": "Join a community (create membership)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Role for RBAC: admin | moderator | user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateMembershipDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "id": 5,
+                    "userId": 3,
+                    "communityId": 1,
+                    "joinedAt": "2026-05-02T12:00:00.000Z"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "memberships"
+        ]
+      }
+    },
+    "/memberships/{id}": {
+      "delete": {
+        "operationId": "MembershipsController_remove",
+        "summary": "Leave a community (delete membership by id)",
+        "parameters": [
+          {
+            "name": "x-role",
+            "in": "header",
+            "description": "Role for RBAC: admin | moderator | user",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "example": {
+                    "message": "Membership 5 removed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "memberships"
+        ]
+      }
     }
   },
   "info": {
@@ -978,14 +1399,19 @@
     "contact": {}
   },
   "tags": [],
-  "servers": [],
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Local Dev Server"
+    }
+  ],
   "components": {
     "securitySchemes": {
       "x-role": {
         "type": "apiKey",
         "in": "header",
         "name": "x-role",
-        "description": "RBAC role header: admin | moderator | user"
+        "description": "RBAC role header: admin | moderator | user | gamer"
       }
     },
     "schemas": {
@@ -1009,7 +1435,8 @@
             "enum": [
               "admin",
               "moderator",
-              "user"
+              "user",
+              "gamer"
             ],
             "example": "user"
           },
@@ -1043,7 +1470,8 @@
             "enum": [
               "admin",
               "moderator",
-              "user"
+              "user",
+              "gamer"
             ],
             "example": "user"
           },
@@ -1078,7 +1506,8 @@
             "enum": [
               "admin",
               "moderator",
-              "user"
+              "user",
+              "gamer"
             ],
             "example": "user"
           },
@@ -1095,29 +1524,59 @@
         "properties": {
           "id": {
             "type": "number",
-            "example": 1
+            "example": 1,
+            "description": "Unique community ID"
           },
           "name": {
             "type": "string",
-            "example": "FPS Arena"
+            "example": "FPS Arena",
+            "description": "Community display name"
           },
           "description": {
             "type": "string",
-            "example": "Competitive FPS players and tournaments"
+            "example": "Competitive FPS players and tournaments",
+            "description": "Community description (10–200 chars)"
           },
           "ownerId": {
             "type": "number",
-            "example": 3
+            "example": 3,
+            "description": "User ID of the community owner"
           },
           "tags": {
             "example": [
               "fps",
               "esports"
             ],
+            "description": "Topic tags (1–5 tags)",
             "type": "array",
             "items": {
               "type": "string"
             }
+          },
+          "icon": {
+            "type": "string",
+            "example": "⚡",
+            "description": "Emoji icon shown in the UI"
+          },
+          "category": {
+            "type": "string",
+            "example": "Gaming",
+            "description": "Category label shown in discovery page"
+          },
+          "slug": {
+            "type": "string",
+            "example": "fps-arena",
+            "description": "URL-friendly slug for routing"
+          },
+          "memberCount": {
+            "type": "number",
+            "example": 12400,
+            "description": "Total member count"
+          },
+          "onlineCount": {
+            "type": "number",
+            "example": 842,
+            "description": "Members currently online"
           }
         },
         "required": [
@@ -1217,7 +1676,31 @@
           },
           "date": {
             "type": "string",
-            "example": "2026-05-02T18:00:00.000Z"
+            "example": "2026-05-09"
+          },
+          "time": {
+            "type": "string",
+            "example": "6:00 PM"
+          },
+          "type": {
+            "type": "string",
+            "example": "tournament"
+          },
+          "attendees": {
+            "type": "number",
+            "example": 48
+          },
+          "maxAttendees": {
+            "type": "number",
+            "example": 100
+          },
+          "status": {
+            "type": "string",
+            "example": "upcoming"
+          },
+          "createdBy": {
+            "type": "number",
+            "example": 1
           }
         },
         "required": [
@@ -1249,7 +1732,39 @@
           },
           "date": {
             "type": "string",
-            "example": "2026-05-20T16:30:00.000Z"
+            "example": "2026-05-20"
+          },
+          "time": {
+            "type": "string",
+            "example": "6:00 PM"
+          },
+          "type": {
+            "type": "string",
+            "example": "tournament",
+            "enum": [
+              "tournament",
+              "hackathon",
+              "workshop",
+              "meetup",
+              "watchparty"
+            ]
+          },
+          "attendees": {
+            "type": "number",
+            "example": 0
+          },
+          "maxAttendees": {
+            "type": "number",
+            "example": 100
+          },
+          "status": {
+            "type": "string",
+            "example": "upcoming",
+            "enum": [
+              "upcoming",
+              "past",
+              "cancelled"
+            ]
           }
         },
         "required": [
@@ -1280,7 +1795,39 @@
           },
           "date": {
             "type": "string",
-            "example": "2026-05-20T16:30:00.000Z"
+            "example": "2026-05-20"
+          },
+          "time": {
+            "type": "string",
+            "example": "6:00 PM"
+          },
+          "type": {
+            "type": "string",
+            "example": "tournament",
+            "enum": [
+              "tournament",
+              "hackathon",
+              "workshop",
+              "meetup",
+              "watchparty"
+            ]
+          },
+          "attendees": {
+            "type": "number",
+            "example": 0
+          },
+          "maxAttendees": {
+            "type": "number",
+            "example": 100
+          },
+          "status": {
+            "type": "string",
+            "example": "upcoming",
+            "enum": [
+              "upcoming",
+              "past",
+              "cancelled"
+            ]
           }
         }
       },
@@ -1495,6 +2042,25 @@
           "totalCommunities",
           "totalEvents",
           "pendingReportsCount"
+        ]
+      },
+      "CreateMembershipDto": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "number",
+            "example": 3,
+            "description": "ID of the user joining the community"
+          },
+          "communityId": {
+            "type": "number",
+            "example": 1,
+            "description": "ID of the community to join"
+          }
+        },
+        "required": [
+          "userId",
+          "communityId"
         ]
       }
     }

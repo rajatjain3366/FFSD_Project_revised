@@ -5,7 +5,10 @@ import { UpdateEventDto } from './dto/update-event.dto';
 
 @Injectable()
 export class EventsService {
-  findAll(): EventRecord[] {
+  findAll(status?: string): EventRecord[] {
+    if (status) {
+      return db.events.filter((item) => item.status === status);
+    }
     return db.events;
   }
 

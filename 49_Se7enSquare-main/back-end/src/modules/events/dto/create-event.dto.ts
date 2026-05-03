@@ -1,6 +1,13 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDateString, IsInt, IsString, Length, Min } from 'class-validator';
+import {
+  IsDateString,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Min,
+} from 'class-validator';
 
 export class CreateEventDto {
   @ApiProperty({ minLength: 3, maxLength: 60, example: 'Clan Tournament Qualifier' })
@@ -19,7 +26,37 @@ export class CreateEventDto {
   @Min(1)
   communityId!: number;
 
-  @ApiProperty({ example: '2026-05-20T16:30:00.000Z' })
-  @IsDateString()
+  @ApiProperty({ example: '2026-05-20' })
+  @IsString()
   date!: string;
+
+  @ApiPropertyOptional({ example: '6:00 PM' })
+  @IsOptional()
+  @IsString()
+  time?: string;
+
+  @ApiPropertyOptional({ example: 'tournament', enum: ['tournament', 'hackathon', 'workshop', 'meetup', 'watchparty'] })
+  @IsOptional()
+  @IsString()
+  type?: string;
+
+  @ApiPropertyOptional({ example: 0 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  attendees?: number;
+
+  @ApiPropertyOptional({ example: 100 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  maxAttendees?: number;
+
+  @ApiPropertyOptional({ example: 'upcoming', enum: ['upcoming', 'past', 'cancelled'] })
+  @IsOptional()
+  @IsString()
+  status?: string;
 }
+

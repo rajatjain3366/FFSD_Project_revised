@@ -7,14 +7,18 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import {
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiHeader,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { Roles } from '../../common/decorators/roles.decorator';
@@ -28,7 +32,10 @@ import { EventsService } from './events.service';
 @ApiHeader({
   name: 'x-role',
   required: true,
-  description: 'Role for RBAC: admin | moderator | user',
+  description:
+    'RBAC role header. Accepted values: admin | moderator | user. ' +
+    'GET / POST require any valid role. PATCH requires admin or moderator. DELETE requires admin.',
+  schema: { type: 'string', enum: ['admin', 'moderator', 'user'] },
 })
 @Controller('events')
 export class EventsController {
@@ -36,36 +43,61 @@ export class EventsController {
 
   @Get()
   @Roles(AppRole.ADMIN, AppRole.MODERATOR, AppRole.USER)
-  @ApiOperation({ summary: 'Get all events' })
-  @ApiOkResponse({ type: EventDto, isArray: true })
-  findAll() {
-    return this.eventsService.findAll();
+  @ApiOperation({
+    summary: 'List all events',
+    description: 'Returns all events. Optionally filter by status query param (upcoming | past | cancelled).',
+  })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: 'Filter events by status',
+    example: 'upcoming',
+    enum: ['upcoming', 'past', 'cancelled'],
+  })
+  @ApiOkResponse({ type: EventDto, isArray: true, description: 'Array of event records' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
+  findAll(@Query('status') status?: string) {
+    return this.eventsService.findAll(status);
   }
 
   @Get(':id')
   @Roles(AppRole.ADMIN, AppRole.MODERATOR, AppRole.USER)
-  @ApiOperation({ summary: 'Get event by id' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiOkResponse({ type: EventDto })
+  @ApiOperation({
+    summary: 'Get a single event by ID',
+    description: 'Fetches one event by its numeric ID.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric event ID' })
+  @ApiOkResponse({ type: EventDto, description: 'The matching event record' })
+  @ApiNotFoundResponse({ description: 'Event not found' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.eventsService.findOne(id);
   }
 
   @Post()
   @Roles(AppRole.ADMIN, AppRole.MODERATOR, AppRole.USER)
-  @ApiOperation({ summary: 'Create event' })
-  @ApiBody({ type: CreateEventDto })
-  @ApiCreatedResponse({ type: EventDto })
+  @ApiOperation({
+    summary: 'Create an event',
+    description: 'Creates a new event linked to a community. Any authenticated role may create events.',
+  })
+  @ApiBody({ type: CreateEventDto, description: 'Event creation payload' })
+  @ApiCreatedResponse({ type: EventDto, description: 'The newly created event' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   create(@Body() payload: CreateEventDto) {
     return this.eventsService.create(payload);
   }
 
   @Patch(':id')
   @Roles(AppRole.ADMIN, AppRole.MODERATOR)
-  @ApiOperation({ summary: 'Update event' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiBody({ type: UpdateEventDto })
-  @ApiOkResponse({ type: EventDto })
+  @ApiOperation({
+    summary: 'Update an event',
+    description: 'Partially updates an event (all fields optional). Requires x-role: admin or moderator.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric event ID to update' })
+  @ApiBody({ type: UpdateEventDto, description: 'Fields to update (all optional)' })
+  @ApiOkResponse({ type: EventDto, description: 'The updated event record' })
+  @ApiNotFoundResponse({ description: 'Event not found' })
+  @ApiForbiddenResponse({ description: 'Only admin or moderator can update events' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpdateEventDto,
@@ -75,9 +107,14 @@ export class EventsController {
 
   @Delete(':id')
   @Roles(AppRole.ADMIN)
-  @ApiOperation({ summary: 'Delete event' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiOkResponse({ schema: { example: { message: 'Event 2 deleted' } } })
+  @ApiOperation({
+    summary: 'Delete an event',
+    description: 'Permanently deletes an event. Requires x-role: admin.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric event ID to delete' })
+  @ApiOkResponse({ schema: { example: { message: 'Event 2 deleted' } }, description: 'Deletion confirmation' })
+  @ApiNotFoundResponse({ description: 'Event not found' })
+  @ApiForbiddenResponse({ description: 'Only admin can delete events' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.eventsService.remove(id);
   }

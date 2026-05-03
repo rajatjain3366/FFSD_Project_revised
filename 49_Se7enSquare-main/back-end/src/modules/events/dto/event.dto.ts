@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class EventDto {
   @ApiProperty({ example: 1 })
@@ -13,6 +13,25 @@ export class EventDto {
   @ApiProperty({ example: 1 })
   communityId!: number;
 
-  @ApiProperty({ example: '2026-05-02T18:00:00.000Z' })
+  @ApiProperty({ example: '2026-05-09' })
   date!: string;
+
+  @ApiPropertyOptional({ example: '6:00 PM' })
+  time?: string;
+
+  @ApiPropertyOptional({ example: 'tournament' })
+  type?: string;
+
+  @ApiPropertyOptional({ example: 48 })
+  attendees?: number;
+
+  @ApiPropertyOptional({ example: 100 })
+  maxAttendees?: number;
+
+  @ApiPropertyOptional({ example: 'upcoming' })
+  status?: string;
+
+  @ApiPropertyOptional({ example: 1 })
+  createdBy?: number;
 }
+

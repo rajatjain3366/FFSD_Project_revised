@@ -1,69 +1,88 @@
 /**
- * Gameunity — Community Discovery Logic
- * Handles dynamic data rendering, category filtering, and real-time search.
+ * Se7enSquare — Discovery Page
+ * Fully backend-driven: fetches communities from GET /api/communities
  */
 
 // --- 1. STATE ---
 let activeCategory = 'all';
-let searchQuery = '';
+let searchQuery    = '';
+let currentSort    = 'active';
+let _communities   = []; // in-memory cache from backend
 
-// --- 2. DYNAMIC RENDERING ---
+// --- 2. LOAD FROM BACKEND ---
+async function loadCommunities() {
+    try {
+        _communities = await window.API.communities.getAll();
+    } catch (err) {
+        console.error('[Discovery] Failed to load communities:', err);
+        _communities = [];
+        const grid = document.getElementById('commGrid');
+        if (grid) grid.innerHTML = `<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-3)">
+            ⚠️ Could not reach backend. Is the NestJS server running on port 3000?
+        </div>`;
+    }
+}
+
+// --- 3. DYNAMIC RENDERING ---
 function renderCommunities() {
     updateHeroStats();
+    renderFeaturedCommunity();
+
     const grid = document.getElementById('commGrid');
     if (!grid) return;
 
-    const allCommunities = window.NexusCRUD.getAll('communities');
-    const joinedList = JSON.parse(localStorage.getItem('nexus_joined_communities') || '["pro-gamers"]');
+    const joinedList = JSON.parse(localStorage.getItem('nexus_joined_communities') || '[]');
 
-    // Filter by category and search query
-    const filtered = allCommunities.filter(c => {
-        const matchesCat = activeCategory === 'all' || c.category.toLowerCase() === activeCategory;
-        const matchesSearch = !searchQuery || 
-            c.name.toLowerCase().includes(searchQuery) || 
-            c.description.toLowerCase().includes(searchQuery);
+    let filtered = _communities.filter(c => {
+        const matchesCat = activeCategory === 'all' ||
+            (c.category || '').toLowerCase() === activeCategory ||
+            (c.tags || []).some(t => t.toLowerCase() === activeCategory);
+        const matchesSearch = !searchQuery ||
+            c.name.toLowerCase().includes(searchQuery) ||
+            (c.description || '').toLowerCase().includes(searchQuery);
         return matchesCat && matchesSearch;
     });
 
-    // Update count display
+    filtered = applySortingLogic(filtered);
+
     const countDisplay = document.getElementById('gridCount');
-    if (countDisplay) {
-        countDisplay.textContent = `Showing ${filtered.length} of ${allCommunities.length}`;
-    }
+    if (countDisplay) countDisplay.textContent = `Showing ${filtered.length} of ${_communities.length}`;
 
     if (filtered.length === 0) {
-        grid.innerHTML = '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-3);">No communities found matching your criteria.</div>';
+        grid.innerHTML = '<div style="grid-column:1/-1;padding:40px;text-align:center;color:var(--text-3)">No communities found matching your criteria.</div>';
         return;
     }
 
     grid.innerHTML = filtered.map((c, index) => {
-        const isJoined = joinedList.includes(c.slug);
-        const bannerClass = c.grad ? c.grad.replace('grad-', 'banner-') : 'banner-purple';
-        
+        const isJoined = joinedList.includes(String(c.id));
+        const icon = c.icon || '🏘️';
+        const grad = c.grad || 'grad-purple';
+        const bannerClass = grad.replace('grad-', 'banner-');
+
         return `
-            <div class="c-card delay-${(index % 10) * 5}" onclick="navigateToCommunity(event, '${c.slug}')">
+            <div class="c-card delay-${(index % 10) * 5}" onclick="navigateToCommunity(event, '${c.id}')">
                 <div class="c-banner ${bannerClass}">
-                    <div class="c-banner-inner">${c.icon}${c.icon}${c.icon}</div>
+                    <div class="c-banner-inner">${icon}${icon}${icon}</div>
                 </div>
                 <div class="c-card-body">
                     <div class="c-top">
-                        <div class="c-icon ${c.grad}">${c.icon}</div>
+                        <div class="c-icon ${grad}">${icon}</div>
                         <div class="c-badges">
-                            ${c.members > 15000 ? '<span class="c-badge badge-trending">🔥 Trending</span>' : ''}
-                            ${c.online > 1000 ? '<span class="c-badge badge-hot">⭐ Hot</span>' : ''}
+                            ${(c.memberCount || 0) > 15000 ? '<span class="c-badge badge-trending">🔥 Trending</span>' : ''}
+                            ${(c.onlineCount  || 0) >  1000 ? '<span class="c-badge badge-hot">⭐ Hot</span>'      : ''}
                         </div>
                     </div>
                     <div>
                         <div class="c-name">${c.name}</div>
-                        <div class="c-cat">${c.category} · Platform</div>
+                        <div class="c-cat">${c.category || 'Gaming'} · ${(c.tags || []).join(', ') || 'Community'}</div>
                     </div>
                     <div class="c-desc">${c.description}</div>
                     <div class="c-footer">
                         <div class="c-stats">
-                            <span class="c-stat">👥 ${c.members.toLocaleString()}</span>
-                            <span class="c-stat">🟢 ${c.online.toLocaleString()} online</span>
+                            <span class="c-stat">👥 ${(c.memberCount || 0).toLocaleString()}</span>
+                            <span class="c-stat">🟢 ${(c.onlineCount  || 0).toLocaleString()} online</span>
                         </div>
-                        <button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin(event, '${c.slug}')">
+                        <button class="btn-join ${isJoined ? 'joined' : ''}" onclick="toggleJoin(event, '${c.id}')">
                             ${isJoined ? '✓ Joined' : 'Join'}
                         </button>
                     </div>
@@ -73,78 +92,135 @@ function renderCommunities() {
     }).join('');
 }
 
-function updateHeroStats() {
-    const allCommunities = window.NexusCRUD.getAll('communities');
-    const totalMembers = allCommunities.reduce((sum, c) => sum + c.members, 0);
-    const totalOnline = allCommunities.reduce((sum, c) => sum + c.online, 0);
-    const allEvents = window.NexusCRUD.getAll('events');
+function renderFeaturedCommunity() {
+    const container = document.getElementById('featuredSection');
+    if (!container || _communities.length === 0) {
+        if (container) container.style.display = 'none';
+        return;
+    }
 
-    const stats = document.querySelectorAll('.h-stat strong');
-    if (stats.length >= 4) {
-        stats[0].textContent = allCommunities.length.toLocaleString();
-        stats[1].textContent = (totalMembers / 1000).toFixed(1) + 'k'; 
-        stats[2].textContent = totalOnline.toLocaleString();
-        stats[3].textContent = allEvents.length + '+';
+    const feat = [..._communities].sort((a, b) => (b.onlineCount || 0) - (a.onlineCount || 0))[0];
+    const joinedList = JSON.parse(localStorage.getItem('nexus_joined_communities') || '[]');
+    const isJoined = joinedList.includes(String(feat.id));
+
+    container.innerHTML = `
+        <div class="featured-banner" onclick="navigateToCommunity(event, '${feat.id}')">
+            <div class="feat-icon ${feat.grad || 'grad-purple'}">${feat.icon || '🏘️'}</div>
+            <div class="feat-info">
+                <div class="feat-name">${feat.name}</div>
+                <div class="feat-desc">${feat.description}</div>
+                <div class="feat-meta">
+                    <div class="feat-tag"><span class="dot"></span> ${(feat.onlineCount || 0).toLocaleString()} online</div>
+                    <div class="feat-tag">👥 ${(feat.memberCount || 0).toLocaleString()} members</div>
+                    <div class="feat-tag">📍 ${feat.category || 'Gaming'}</div>
+                </div>
+            </div>
+            <button class="btn-join-feat ${isJoined ? 'joined' : ''}" onclick="toggleJoin(event, '${feat.id}')">
+                ${isJoined ? '✓ Joined' : 'Join Community'}
+            </button>
+        </div>
+    `;
+}
+
+function applySortingLogic(list) {
+    switch (currentSort) {
+        case 'active':  return [...list].sort((a, b) => (b.onlineCount  || 0) - (a.onlineCount  || 0));
+        case 'members': return [...list].sort((a, b) => (b.memberCount  || 0) - (a.memberCount  || 0));
+        case 'trending':return [...list].sort((a, b) =>
+            ((b.onlineCount || 0) / Math.max(b.memberCount || 1, 1)) -
+            ((a.onlineCount || 0) / Math.max(a.memberCount || 1, 1)));
+        case 'newest':  return [...list].sort((a, b) => b.id - a.id);
+        default:        return list;
     }
 }
 
-// --- 3. EVENT HANDLERS ---
-window.setChip = function(el, category) {
+function updateHeroStats() {
+    const totalMembers = _communities.reduce((s, c) => s + (c.memberCount || 0), 0);
+    const totalOnline  = _communities.reduce((s, c) => s + (c.onlineCount  || 0), 0);
+    const stats = document.querySelectorAll('.h-stat strong');
+    if (stats.length >= 3) {
+        stats[0].textContent = _communities.length.toLocaleString();
+        stats[1].textContent = totalMembers > 1000 ? (totalMembers / 1000).toFixed(1) + 'k' : totalMembers;
+        stats[2].textContent = totalOnline.toLocaleString();
+    }
+}
+
+// --- 4. EVENT HANDLERS ---
+window.toggleSortDropdown = function () {
+    document.getElementById('sortDropdown')?.classList.toggle('show');
+};
+
+window.applySort = function (type, label) {
+    currentSort = type;
+    document.getElementById('sortBtn').textContent = `⇅ Sort: ${label}`;
+    document.getElementById('sortDropdown')?.classList.remove('show');
+    renderCommunities();
+};
+
+window.setChip = function (el, category) {
     document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
     el.classList.add('active');
     activeCategory = category.toLowerCase();
     renderCommunities();
 };
 
-window.filterCards = function() {
+window.filterCards = function () {
     searchQuery = document.getElementById('searchInput').value.toLowerCase().trim();
     renderCommunities();
 };
 
-window.toggleJoin = function(event, slug) {
-    event.stopPropagation(); // Prevent card click navigation
-    const btn = event.currentTarget;
-    let joinedList = JSON.parse(localStorage.getItem('nexus_joined_communities') || '["pro-gamers"]');
-    const isJoined = joinedList.includes(slug);
+window.toggleJoin = async function (event, communityId) {
+    event.stopPropagation();
+    let joinedList = JSON.parse(localStorage.getItem('nexus_joined_communities') || '[]');
+    const id = String(communityId);
+    const isJoined = joinedList.includes(id);
+    const role = JSON.parse(localStorage.getItem('nexus_user') || '{}').role || 'user';
+    const userId = JSON.parse(localStorage.getItem('nexus_user') || '{}').id || 3;
 
     if (isJoined) {
-        joinedList = joinedList.filter(s => s !== slug);
-        btn.classList.remove('joined');
-        btn.textContent = 'Join';
+        // Find & delete the membership
+        try {
+            const all = await window.API.memberships.getAll();
+            const match = all.find(m => String(m.communityId) === id && String(m.userId) === String(userId));
+            if (match) await window.API.memberships.delete(match.id);
+        } catch (e) { /* ignore */ }
+        joinedList = joinedList.filter(s => s !== id);
+        if (window.toast) window.toast('Left community.');
     } else {
-        joinedList.push(slug);
-        btn.classList.add('joined');
-        btn.textContent = '✓ Joined';
-        const comm = window.NexusCRUD.getAll('communities').find(c => c.slug === slug);
-        if (window.toast) window.toast(`Welcome to ${comm.name}! ⚡`);
+        try {
+            await window.API.memberships.create({ userId: Number(userId), communityId: Number(communityId) });
+        } catch (e) { /* duplicate is OK */ }
+        joinedList.push(id);
+        const comm = _communities.find(c => String(c.id) === id);
+        if (window.toast && comm) window.toast(`Welcome to ${comm.name}! ⚡`);
     }
 
     localStorage.setItem('nexus_joined_communities', JSON.stringify(joinedList));
-    
-    // Update the dashboard counts if possible
-    if (window.renderDashboard) window.renderDashboard();
-    updateHeroStats();
-};
-
-window.navigateToCommunity = function(event, slug) {
-    if (event.target.tagName === 'BUTTON') return;
-    window.location.href = `community-page.html?name=${slug}`;
-};
-
-// --- 4. STARTUP ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Ensure store is ready
-    if (window.NexusData) window.NexusData.getStore();
-    
     renderCommunities();
-    
-    // Search focus shortcut
-    window.addEventListener('keydown', (e) => {
+};
+
+window.navigateToCommunity = function (event, id) {
+    if (event.target.tagName === 'BUTTON') return;
+    window.location.href = `community-page.html?id=${id}`;
+};
+
+document.addEventListener('click', e => {
+    if (!e.target.closest('.sort-container')) {
+        document.getElementById('sortDropdown')?.classList.remove('show');
+    }
+});
+
+// --- 5. STARTUP ---
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadCommunities();
+    renderCommunities();
+
+    window.addEventListener('keydown', e => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
             e.preventDefault();
             document.getElementById('searchInput')?.focus();
         }
     });
 
-    console.log("%c[Discovery] %cSynchronized with Store.", "color: #5B6EF5; font-weight: bold;", "color: #10B981;");
+    console.log('%c[Discovery] %cLive backend data loaded.', 'color: #5B6EF5; font-weight: bold;', 'color: #10B981;');
 });

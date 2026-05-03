@@ -1,9 +1,26 @@
 /**
- * Gameunity — Home Dashboard Logic
- * Handles dynamic data rendering for joined communities, notifications, and events.
+ * Se7enSquare — Dashboard Page
+ * Fetches communities and events from the live NestJS backend.
  */
 
-// --- 1. DYNAMIC RENDERING ---
+let _communities = [];
+let _events      = [];
+
+// ── Load ──────────────────────────────────────────────────────────────────────
+async function loadDashboardData() {
+    try {
+        [_communities, _events] = await Promise.all([
+            window.API.communities.getAll(),
+            window.API.events.getAll(),
+        ]);
+    } catch (err) {
+        console.warn('[Dashboard] Backend unreachable, running in offline mode:', err.message);
+        _communities = [];
+        _events = [];
+    }
+}
+
+// ── Rendering ─────────────────────────────────────────────────────────────────
 function renderDashboard() {
     renderGreeting();
     renderJoinedCommunities();
@@ -12,15 +29,21 @@ function renderDashboard() {
 }
 
 function renderGreeting() {
-    const user = JSON.parse(localStorage.getItem('nexus_user'));
+    const user = JSON.parse(localStorage.getItem('nexus_user') || '{}');
     const greetingNameEl = document.querySelector('.greeting-name');
-    if (greetingNameEl && user) {
-        const hour = new Date().getHours();
-        let prefix = "Good morning";
-        if (hour >= 12) prefix = "Good afternoon";
-        if (hour >= 18) prefix = "Good evening";
-        
-        greetingNameEl.textContent = `${prefix}, ${user.firstName || user.username} 👋`;
+    const headerAvatarEl = document.getElementById('headerProfile');
+
+    if (user && user.username) {
+        if (greetingNameEl) {
+            const hour = new Date().getHours();
+            let prefix = 'Good morning';
+            if (hour >= 12) prefix = 'Good afternoon';
+            if (hour >= 18) prefix = 'Good evening';
+            greetingNameEl.textContent = `${prefix}, ${user.username} 👋`;
+        }
+        if (headerAvatarEl) {
+            headerAvatarEl.textContent = user.username.slice(0, 2).toUpperCase() || '??';
+        }
     }
 }
 
@@ -28,118 +51,103 @@ function renderJoinedCommunities() {
     const container = document.querySelector('.communities-scroll');
     if (!container) return;
 
-    const communities = window.NexusCRUD.getAll('communities');
-    const joinedList = JSON.parse(localStorage.getItem('nexus_joined_communities') || '[]');
+    const joinedIds = JSON.parse(localStorage.getItem('nexus_joined_communities') || '[]');
+    const joined = joinedIds.length > 0
+        ? _communities.filter(c => joinedIds.includes(String(c.id)))
+        : _communities.slice(0, 3); // show first 3 if nothing joined yet
 
-    const joinedCommunities = communities.filter(c => joinedList.includes(c.slug));
-
-    if (joinedCommunities.length === 0) {
-        container.innerHTML = `
-            <div class="community-card-link" onclick="window.location.href='discovery.html'">
-                <div class="comm-card" style="border: 2px dashed var(--bg-card); background: transparent; justify-content: center; align-items: center; gap: 8px;">
-                    <span style="font-size: 24px;">🔍</span>
-                    <span style="font-size: 13px; color: var(--text-3);">Explore Communities</span>
-                </div>
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = joinedCommunities.map((comm, index) => {
-        const bannerClass = comm.grad ? comm.grad.replace('grad-', 'banner-') : 'banner-purple';
+    const commCards = joined.map(c => {
+        const grad = c.grad || 'grad-purple';
+        const bannerClass = grad.replace('grad-', 'banner-');
         return `
-            <div class="community-card-link" onclick="window.location.href='community-page.html?name=${comm.slug}'">
+            <div class="community-card-link" onclick="window.location.href='community-page.html?id=${c.id}'">
               <div class="comm-card">
                 <div class="comm-card-banner ${bannerClass}"></div>
-                <div class="comm-card-icon ${comm.grad}">${comm.icon}</div>
-                <div class="comm-card-name">${comm.name}</div>
+                <div class="comm-card-icon ${grad}">${c.icon || '🏘️'}</div>
+                <div class="comm-card-name">${c.name}</div>
                 <div class="comm-card-meta">
-                    <span>${comm.members.toLocaleString()} members</span>
+                    <span>${(c.memberCount || 0).toLocaleString()} members</span>
                 </div>
               </div>
             </div>
         `;
-    }).join('');
+    });
+
+    commCards.push(`
+        <div class="community-card-link" onclick="window.location.href='create-community.html'">
+          <div class="comm-card create-card">
+            <div class="plus">+</div>
+            <div class="comm-card-name" style="margin-top: 0;">Create Community</div>
+            <div class="comm-card-meta">Start your journey</div>
+          </div>
+        </div>
+    `);
+
+    container.innerHTML = commCards.join('');
 }
 
 function renderUpcomingEvents() {
     const container = document.querySelector('.event-list');
     if (!container) return;
 
-    const events = window.NexusCRUD.getWhere('events', e => e.status === 'upcoming').slice(0, 3);
+    const upcoming = _events.filter(e => e.status === 'upcoming').slice(0, 3);
 
-    if (events.length === 0) {
+    if (upcoming.length === 0) {
         container.innerHTML = '<div style="padding:20px; color:var(--text-3);">No upcoming events.</div>';
         return;
     }
 
-    container.innerHTML = events.map(ev => {
-        const date = new Date(ev.date);
-        const day = date.getDate();
+    container.innerHTML = upcoming.map(ev => {
+        const date  = new Date(ev.date);
+        const day   = date.getDate();
         const month = date.toLocaleString('en-US', { month: 'short' });
 
         return `
-            <div class="event-card" onclick="window.location.href='events.html?id=${ev.id}'">
-                <div class="ev-date">
+            <div class="event-card" onclick="window.location.href='events.html'">
+                <div class="event-date">
                     <div class="ev-mon">${month}</div>
                     <div class="ev-day">${day}</div>
                 </div>
-                <div class="ev-info">
-                    <div class="ev-name">${ev.title}</div>
-                    <div class="ev-meta">${ev.time} · ${ev.attendees} attending</div>
+                <div class="event-info">
+                    <h4>${ev.title}</h4>
+                    <p>${ev.time || '—'} • ${ev.attendees || 0} attending</p>
                 </div>
-                <div class="ev-arrow">→</div>
+                <div class="event-action">→</div>
             </div>
         `;
     }).join('');
 }
 
 function updateStatsBanner() {
-    const communities = window.NexusCRUD.getAll('communities');
-    const joinedCount = JSON.parse(localStorage.getItem('nexus_joined_communities') || '["pro-gamers"]').length;
-    
-    // Update "Joined" stat in greeting
+    const joinedIds = JSON.parse(localStorage.getItem('nexus_joined_communities') || '[]');
     const stats = document.querySelectorAll('.g-stat');
     stats.forEach(stat => {
         const label = stat.querySelector('.g-stat-label')?.textContent.toLowerCase();
         const valEl = stat.querySelector('.g-stat-val');
         if (label?.includes('communities') && valEl) {
-            valEl.textContent = joinedCount;
+            valEl.textContent = joinedIds.length;
         }
     });
 }
 
-// --- 2. NOTIFICATION MANAGEMENT ---
-window.markAllRead = function () {
-    const unreadItems = document.querySelectorAll(".notif-item.unread");
-    unreadItems.forEach((item) => {
-        item.classList.remove("unread");
-        item.classList.add("read");
-    });
-
-    const headerBadge = document.querySelector(".header-actions .notif-dot");
-    if (headerBadge) headerBadge.style.background = "var(--success)";
-    if (window.toast) window.toast("Notifications marked as read");
-};
-
-// --- 3. UTILITIES ---
-function initHorizontalScroll() {
-    const scrollContainer = document.querySelector(".communities-scroll");
-    if (!scrollContainer) return;
-
-    scrollContainer.addEventListener("wheel", (evt) => {
-        evt.preventDefault();
-        scrollContainer.scrollLeft += evt.deltaY;
+// ── Header nav ────────────────────────────────────────────────────────────────
+function initHeaderNavigation() {
+    document.getElementById('headerProfile')?.addEventListener('click', () => {
+        window.location.href = 'profile-settings.html';
     });
 }
 
-// --- 4. INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', () => {
-    // Ensure store is ready before rendering
-    if (window.NexusData) window.NexusData.getStore();
-    
+function initHorizontalScroll() {
+    const sc = document.querySelector('.communities-scroll');
+    if (!sc) return;
+    sc.addEventListener('wheel', evt => { evt.preventDefault(); sc.scrollLeft += evt.deltaY; });
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadDashboardData();
     renderDashboard();
     initHorizontalScroll();
-    
-    console.log("%c[Dashboard] %cReady.", "color: #5B6EF5; font-weight: bold;", "color: #10B981;");
+    initHeaderNavigation();
+    console.log('%c[Dashboard] %cLive backend data loaded.', 'color: #5B6EF5; font-weight: bold;', 'color: #10B981;');
 });

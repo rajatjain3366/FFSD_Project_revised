@@ -26,9 +26,12 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest<Request>();
     const rawRole = request.headers['x-role'];
     const roleValue = Array.isArray(rawRole) ? rawRole[0] : rawRole;
-    const role = typeof roleValue === 'string' ? roleValue.trim().toLowerCase() : undefined;
+    let role = typeof roleValue === 'string' ? roleValue.trim().toLowerCase() : undefined;
 
-    if (!role || !ALL_ROLES.includes(role as AppRole)) {
+    // normalise frontend alias: 'gamer' is treated as 'user'
+    if (role === 'gamer') role = 'user';
+
+    if (!role || !ALL_ROLES.includes(role)) {
       throw new ForbiddenException('Missing or invalid x-role header');
     }
 
@@ -39,3 +42,4 @@ export class RolesGuard implements CanActivate {
     return true;
   }
 }
+

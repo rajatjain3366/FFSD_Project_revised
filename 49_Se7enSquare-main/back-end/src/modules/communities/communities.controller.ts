@@ -11,7 +11,9 @@ import {
 import {
   ApiBody,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiHeader,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiParam,
@@ -28,7 +30,10 @@ import { UpdateCommunityDto } from './dto/update-community.dto';
 @ApiHeader({
   name: 'x-role',
   required: true,
-  description: 'Role for RBAC: admin | moderator | user',
+  description:
+    'RBAC role header. Accepted values: admin | moderator | user. ' +
+    'GET endpoints require any valid role. DELETE requires admin.',
+  schema: { type: 'string', enum: ['admin', 'moderator', 'user'] },
 })
 @Controller('communities')
 export class CommunitiesController {
@@ -36,36 +41,54 @@ export class CommunitiesController {
 
   @Get()
   @Roles(AppRole.ADMIN, AppRole.MODERATOR, AppRole.USER)
-  @ApiOperation({ summary: 'Get all communities' })
-  @ApiOkResponse({ type: CommunityDto, isArray: true })
+  @ApiOperation({
+    summary: 'List all communities',
+    description: 'Returns all communities including enriched UI fields (icon, category, slug, memberCount, onlineCount).',
+  })
+  @ApiOkResponse({ type: CommunityDto, isArray: true, description: 'Array of community records' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   findAll() {
     return this.communitiesService.findAll();
   }
 
   @Get(':id')
   @Roles(AppRole.ADMIN, AppRole.MODERATOR, AppRole.USER)
-  @ApiOperation({ summary: 'Get community by id' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiOkResponse({ type: CommunityDto })
+  @ApiOperation({
+    summary: 'Get a single community by ID',
+    description: 'Fetches one community by its numeric ID, including all display fields.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric community ID' })
+  @ApiOkResponse({ type: CommunityDto, description: 'The matching community record' })
+  @ApiNotFoundResponse({ description: 'Community not found' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   findOne(@Param('id', ParseIntPipe) id: number) {
     return this.communitiesService.findOne(id);
   }
 
   @Post()
   @Roles(AppRole.ADMIN, AppRole.USER)
-  @ApiOperation({ summary: 'Create community' })
-  @ApiBody({ type: CreateCommunityDto })
-  @ApiCreatedResponse({ type: CommunityDto })
+  @ApiOperation({
+    summary: 'Create a community',
+    description: 'Creates a new community. Any authenticated role may create a community.',
+  })
+  @ApiBody({ type: CreateCommunityDto, description: 'Community creation payload (name, description, ownerId, tags)' })
+  @ApiCreatedResponse({ type: CommunityDto, description: 'The newly created community' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   create(@Body() payload: CreateCommunityDto) {
     return this.communitiesService.create(payload);
   }
 
   @Patch(':id')
   @Roles(AppRole.ADMIN, AppRole.USER)
-  @ApiOperation({ summary: 'Update community' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiBody({ type: UpdateCommunityDto })
-  @ApiOkResponse({ type: CommunityDto })
+  @ApiOperation({
+    summary: 'Update a community',
+    description: 'Partially updates a community. All fields are optional.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric community ID to update' })
+  @ApiBody({ type: UpdateCommunityDto, description: 'Fields to update (all optional)' })
+  @ApiOkResponse({ type: CommunityDto, description: 'The updated community record' })
+  @ApiNotFoundResponse({ description: 'Community not found' })
+  @ApiForbiddenResponse({ description: 'Missing or invalid x-role header' })
   update(
     @Param('id', ParseIntPipe) id: number,
     @Body() payload: UpdateCommunityDto,
@@ -75,9 +98,14 @@ export class CommunitiesController {
 
   @Delete(':id')
   @Roles(AppRole.ADMIN)
-  @ApiOperation({ summary: 'Delete community' })
-  @ApiParam({ name: 'id', type: Number })
-  @ApiOkResponse({ schema: { example: { message: 'Community 3 deleted' } } })
+  @ApiOperation({
+    summary: 'Delete a community',
+    description: 'Permanently deletes a community and cascades to related memberships and events. Requires x-role: admin.',
+  })
+  @ApiParam({ name: 'id', type: Number, description: 'Numeric community ID to delete' })
+  @ApiOkResponse({ schema: { example: { message: 'Community 3 deleted' } }, description: 'Deletion confirmation' })
+  @ApiNotFoundResponse({ description: 'Community not found' })
+  @ApiForbiddenResponse({ description: 'Only admin can delete communities' })
   remove(@Param('id', ParseIntPipe) id: number) {
     return this.communitiesService.remove(id);
   }

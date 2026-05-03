@@ -1,204 +1,397 @@
 /**
- * Gameunity — Events Module Logic
- * Handles dynamic data rendering for events, registration, and discovery.
+ * Se7enSquare — Events Page
+ * Fully backend-driven: all CRUD goes to /api/events & /api/communities
  */
 
-// --- 1. STATE ---
-let currentActiveTab = "upcoming";
-let activeFilter = "all events";
+let currentActiveTab = 'upcoming';
+let activeFilter     = 'all events';
+let selectedEventType = 'Online';
 
-// --- 2. DYNAMIC RENDERING ---
-function renderEvents() {
-    const upcomingGrid = document.querySelector('.events-grid');
-    if (!upcomingGrid) return;
+let _events      = [];
+let _communities = [];
 
-    const allEvents = window.NexusCRUD.getAll('events');
-    const communities = window.NexusCRUD.getAll('communities');
-    
-    // Filter Pass
-    const regList = JSON.parse(localStorage.getItem('nexus_registered_events') || '["e2"]');
-    const filtered = allEvents.filter(e => {
-        let matchesTab = true;
-        if (currentActiveTab === 'upcoming') matchesTab = (e.status === 'upcoming');
-        if (currentActiveTab === 'registered') matchesTab = regList.includes(e.id);
+// ── Load ─────────────────────────────────────────────────────────────────────
+async function loadData() {
+    try {
+        [_events, _communities] = await Promise.all([
+            window.API.events.getAll(),
+            window.API.communities.getAll(),
+        ]);
+    } catch (err) {
+        console.error('[Events] Backend error:', err);
+        _events = []; _communities = [];
+    }
+}
 
-        const matchesFilter = activeFilter === 'all events' || 
-                             e.type.toLowerCase().includes(activeFilter.toLowerCase()) ||
-                             e.title.toLowerCase().includes(activeFilter.toLowerCase());
-        return matchesTab && matchesFilter;
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderAll() {
+    const userRegistrations = JSON.parse(localStorage.getItem('nexus_registered_events') || '[]');
+    updateTabCounts(userRegistrations);
+
+    if (currentActiveTab === 'upcoming') {
+        renderUpcomingGrid(userRegistrations);
+        renderFeaturedEvent(userRegistrations);
+    } else if (currentActiveTab === 'registered') {
+        renderRegisteredGrid(userRegistrations);
+    }
+}
+
+function updateTabCounts(registrations) {
+    const upcomingCount = _events.filter(e => e.status === 'upcoming').length;
+    const tabUpcoming   = document.querySelector('.tab-btn[onclick*="upcoming"] .tab-count');
+    const tabReg        = document.querySelector('.tab-btn[onclick*="registered"] .tab-count');
+    if (tabUpcoming) tabUpcoming.textContent = upcomingCount;
+    if (tabReg)      tabReg.textContent      = registrations.length;
+}
+
+function renderUpcomingGrid(registrations) {
+    const grid = document.getElementById('upcomingGrid');
+    if (!grid) return;
+
+    const filtered = _events.filter(e => {
+        if (e.status !== 'upcoming') return false;
+        if (activeFilter === 'all events') return true;
+        return (e.type || '').toLowerCase().includes(activeFilter.toLowerCase());
     });
 
-    // Update Counts
-    const upcomingCount = allEvents.filter(e => e.status === 'upcoming').length;
-    
-    const tabUpcoming = document.querySelector('.tab-btn .tab-count');
-    const tabReg = document.querySelectorAll('.tab-btn .tab-count')[1];
-    if (tabUpcoming) tabUpcoming.textContent = upcomingCount;
-    if (tabReg) tabReg.textContent = regList.length;
-
-    const subHeader = document.querySelector("#tab-upcoming .section-sub");
-    if (subHeader) {
-        subHeader.textContent = `${filtered.length} of ${allEvents.length} events across your communities`;
-    }
-
-    // Dynamicize Featured Event
-    const featEvent = allEvents.find(e => e.status === 'upcoming');
-    if (featEvent && currentActiveTab === 'upcoming') {
-        const featTitle = document.querySelector('.feat-title');
-        const featDesc = document.querySelector('.feat-desc');
-        const featMeta = document.querySelector('.feat-bottom');
-        const comm = communities.find(c => c.id === featEvent.communityId);
-        
-        if (featTitle) featTitle.textContent = featEvent.title;
-        if (featDesc) featDesc.textContent = featEvent.description;
-        if (featMeta && comm) {
-            featMeta.innerHTML = `
-                <div class="feat-meta-item">🗓 ${new Date(featEvent.date).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</div>
-                <div class="feat-meta-item">⏰ Starts ${featEvent.time}</div>
-                <div class="feat-meta-item">👥 ${featEvent.attendees} registered</div>
-                <div class="feat-meta-item">🏢 ${comm.name}</div>
-            `;
-        }
-    }
+    const subHeader = document.querySelector('#tab-upcoming .section-sub');
+    if (subHeader) subHeader.textContent = `${filtered.length} events across your communities`;
 
     if (filtered.length === 0) {
-        upcomingGrid.innerHTML = '<div style="grid-column: 1/-1; padding: 40px; text-align: center; color: var(--text-3);">No events found matching your criteria.</div>';
+        grid.innerHTML = `<div class="empty-state">No events found matching "${activeFilter}".</div>`;
         return;
     }
 
-    upcomingGrid.innerHTML = filtered.map((ev, index) => {
-        const comm = communities.find(c => c.id === ev.communityId) || { name: 'Unknown', icon: '⚡' };
-        const date = new Date(ev.date);
-        const day = date.getDate().toString().padStart(2, '0');
-        const month = date.toLocaleString('en-US', { month: 'short' });
+    grid.innerHTML = filtered.map((ev, i) => generateEventCard(ev, registrations, i)).join('');
+}
 
-        return `
-            <div class="ev-card delay-${(index % 10) * 5}" data-event-id="${ev.id}">
-                <div class="ev-card-banner" style="background: linear-gradient(135deg, var(--accent), var(--bg-card));">
-                    <div class="ev-card-banner-inner">${comm.icon}</div>
-                    <div class="ev-card-badges">
-                        <span class="ev-badge badge-online">🌐 ${ev.type}</span>
+function renderRegisteredGrid(registrations) {
+    const grid = document.getElementById('regGrid');
+    if (!grid) return;
+
+    const filtered = _events.filter(e => registrations.includes(String(e.id)));
+
+    const subHeader = document.getElementById('reg-sub-header');
+    if (subHeader) subHeader.textContent = `${filtered.length} upcoming events you're registered for`;
+
+    if (filtered.length === 0) {
+        grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;padding:60px 20px">
+            <div style="font-size:40px;margin-bottom:10px">🎟</div>
+            <h3>No registrations yet</h3>
+            <p>Explore upcoming events and register to see them here.</p>
+            <button class="btn-primary" style="margin-top:15px" onclick="switchTab('upcoming',document.querySelector('.tab-btn'))">Browse Events</button>
+        </div>`;
+        return;
+    }
+
+    grid.innerHTML = filtered.map((ev, i) => generateRegCard(ev, i)).join('');
+}
+
+function renderFeaturedEvent(registrations) {
+    const featured = _events.find(e => e.isFeatured) || _events[0];
+    if (!featured) return;
+
+    const isRegistered = registrations.includes(String(featured.id));
+    const isFull = featured.maxAttendees && featured.attendees >= featured.maxAttendees;
+
+    const featTitle    = document.querySelector('.feat-title');
+    const featDesc     = document.querySelector('.feat-desc');
+    const seatsLeft    = document.querySelector('.seats-left');
+    const featBtn      = document.getElementById('featured-register');
+    const attendeeCount = document.querySelector('.attendee-count');
+
+    if (featTitle)     featTitle.textContent     = featured.title;
+    if (featDesc)      featDesc.textContent       = featured.description;
+    if (seatsLeft)     seatsLeft.textContent      = isFull ? 'Event Full' : `⚡ ${featured.maxAttendees - featured.attendees} seats left`;
+    if (attendeeCount) attendeeCount.textContent  = `${featured.attendees} people registered`;
+
+    if (featBtn) {
+        featBtn.textContent = isRegistered ? '✓ Registered' : (isFull ? 'Event Full' : 'Register Now');
+        featBtn.className   = `btn-register ${isRegistered ? 'registered' : ''}`;
+        featBtn.disabled    = isFull && !isRegistered;
+        featBtn.onclick     = () => handleRegistrationToggle(featured.id);
+    }
+}
+
+function getComm(communityId) {
+    return _communities.find(c => c.id === communityId) || { name: 'Unknown', icon: '🎮' };
+}
+
+function generateEventCard(ev, registrations, index) {
+    const comm       = getComm(ev.communityId);
+    const isRegistered = registrations.includes(String(ev.id));
+    const date       = new Date(ev.date);
+    const day        = date.getDate().toString().padStart(2, '0');
+    const month      = date.toLocaleString('en-US', { month: 'short' });
+    const isFull     = ev.maxAttendees && ev.attendees >= ev.maxAttendees;
+
+    return `
+        <div class="ev-card delay-${(index % 10) * 5}">
+            <div class="ev-card-banner" style="background:linear-gradient(135deg,var(--accent),var(--bg-surface))">
+                <div class="ev-card-banner-inner">${comm.icon}</div>
+                <div class="ev-card-badges">
+                    <span class="ev-badge badge-online">${ev.type || 'event'}</span>
+                </div>
+            </div>
+            <div class="ev-card-body">
+                <div class="ev-card-top">
+                    <div class="ev-date-box">
+                        <div class="ev-date-mon">${month}</div>
+                        <div class="ev-date-day">${day}</div>
+                    </div>
+                    <div>
+                        <div class="ev-card-title">${ev.title}</div>
+                        <div class="ev-card-comm">
+                            <div class="ev-comm-av">${comm.icon}</div>
+                            <div class="ev-comm-name">${comm.name}</div>
+                        </div>
                     </div>
                 </div>
-                <div class="ev-card-body">
-                    <div class="ev-card-top">
-                        <div class="ev-date-box">
-                            <div class="ev-date-mon">${month}</div>
-                            <div class="ev-date-day">${day}</div>
-                        </div>
-                        <div>
-                            <div class="ev-card-title">${ev.title}</div>
-                            <div class="ev-card-comm">
-                                <div class="ev-comm-av">${comm.icon}</div>
-                                <div class="ev-comm-name">${comm.name}</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="ev-card-meta">
-                        <div class="ev-meta-tag">⏰ ${ev.time}</div>
-                        <div class="ev-meta-tag">👤 ${ev.attendees} going</div>
-                        <div class="ev-meta-tag">📍 Online</div>
-                    </div>
-                    <div class="ev-card-footer">
-                        <div class="ev-attendees">Capacity: ${ev.maxAttendees || 'Unlimited'}</div>
-                        <button class="btn-ev ${regList.includes(ev.id) ? 'registered' : ''}" onclick="toggleReg(this, '${ev.id}')">${regList.includes(ev.id) ? '✓ Registered' : 'Register'}</button>
+                <div class="ev-card-meta">
+                    <div class="ev-meta-tag">⏰ ${ev.time || '—'}</div>
+                    <div class="ev-meta-tag">👤 ${ev.attendees || 0} / ${ev.maxAttendees || '∞'}</div>
+                    <div class="ev-meta-tag">${ev.type || 'Event'}</div>
+                </div>
+                <div class="ev-card-footer">
+                    <div class="ev-attendees">${isFull ? '🚫 Event Full' : `⚡ ${ev.maxAttendees - ev.attendees} seats left`}</div>
+                    <div class="ev-actions">
+                        <button class="btn-register ${isRegistered ? 'registered' : ''}" onclick="handleRegistrationToggle(${ev.id})">
+                            ${isRegistered ? 'Registered' : 'Register Now'}
+                        </button>
+                        <button class="btn-delete-event" onclick="deleteEvent(${ev.id})" title="Delete">🗑️</button>
                     </div>
                 </div>
             </div>
-        `;
-    }).join('');
+        </div>
+    `;
 }
 
-// --- 3. EVENT HANDLERS ---
-window.switchTab = function (name, btn) {
-    document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
-    btn.classList.add("active");
-    document.querySelectorAll(".content").forEach((c) => c.classList.remove("active"));
-    
-    const targetContent = document.getElementById("tab-" + name);
-    if (targetContent) targetContent.classList.add("active");
+function generateRegCard(ev, index) {
+    const comm = getComm(ev.communityId);
+    const date = new Date(ev.date);
 
+    return `
+        <div class="reg-card delay-${(index % 10) * 5}">
+            <div class="reg-card-banner" style="background:linear-gradient(135deg,var(--bg-card),var(--accent-low))">
+                <div class="reg-card-banner-inner">🎟</div>
+            </div>
+            <div class="reg-card-body">
+                <div class="reg-card-top">
+                    <div class="reg-date-box">
+                        <div class="reg-mon">${date.toLocaleString('en-US', { month: 'short' })}</div>
+                        <div class="reg-day">${date.getDate()}</div>
+                    </div>
+                    <div>
+                        <div class="reg-title">${ev.title}</div>
+                        <div class="reg-comm">
+                            <div class="reg-comm-av">${comm.icon}</div>
+                            <div class="reg-comm-name">${comm.name}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="reg-meta">
+                    <div class="reg-meta-item">⏰ ${ev.time || '—'}</div>
+                    <div class="reg-meta-item">${ev.type || 'Event'}</div>
+                </div>
+                <div class="reg-status-row">
+                    <span class="reg-status status-confirmed">✓ Confirmed</span>
+                    <span class="ticket-id">TKT-${String(ev.id).padStart(6, '0')}</span>
+                </div>
+                <div class="reg-card-footer">
+                    <div class="ev-attendees">👥 ${ev.attendees || 0} attending</div>
+                    <div class="reg-actions">
+                        <button class="btn-cancel" onclick="handleRegistrationToggle(${ev.id})">Cancel</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+// ── Actions ───────────────────────────────────────────────────────────────────
+window.handleRegistrationToggle = async function (eventId) {
+    let registrations = JSON.parse(localStorage.getItem('nexus_registered_events') || '[]');
+    const id = String(eventId);
+    const isRegistered = registrations.includes(id);
+    const event = _events.find(e => String(e.id) === id);
+    if (!event) return;
+
+    if (isRegistered) {
+        const newAttendees = Math.max(0, (event.attendees || 0) - 1);
+        try {
+            await window.API.events.update(eventId, { attendees: newAttendees });
+            event.attendees = newAttendees;
+        } catch (e) { /* ignore */ }
+        registrations = registrations.filter(r => r !== id);
+        if (window.toast) window.toast(`Unregistered from ${event.title}`);
+    } else {
+        if (event.maxAttendees && event.attendees >= event.maxAttendees) {
+            if (window.toast) window.toast('Cannot register — Event is full!', 'error');
+            return;
+        }
+        const newAttendees = (event.attendees || 0) + 1;
+        try {
+            await window.API.events.update(eventId, { attendees: newAttendees });
+            event.attendees = newAttendees;
+        } catch (e) { /* ignore */ }
+        registrations.push(id);
+        if (window.toast) window.toast(`Registered for ${event.title}! 🎟`);
+    }
+
+    localStorage.setItem('nexus_registered_events', JSON.stringify(registrations));
+    renderAll();
+};
+
+window.deleteEvent = async function (eventId) {
+    if (!confirm('Are you sure you want to delete this event?')) return;
+    try {
+        await window.API.events.delete(eventId);
+        _events = _events.filter(e => e.id !== eventId);
+        if (window.toast) window.toast('Event deleted. 🗑️');
+        renderAll();
+    } catch (err) {
+        if (window.toast) window.toast('Error deleting event: ' + err.message, 'error');
+    }
+};
+
+// ── Create Event ──────────────────────────────────────────────────────────────
+function initForm() {
+    const form = document.getElementById('createEventForm');
+    if (!form) return;
+
+    form.addEventListener('submit', e => { e.preventDefault(); validateAndSubmit(); });
+
+    form.querySelectorAll('input, textarea, select').forEach(field => {
+        field.addEventListener('input', () => {
+            field.classList.remove('field-error');
+            const errEl = document.getElementById('err-' + field.id.replace('ev', '').toLowerCase());
+            if (errEl) { errEl.classList.remove('show'); errEl.textContent = ''; }
+        });
+    });
+}
+
+async function validateAndSubmit() {
+    const titleEl = document.getElementById('evTitle');
+    const descEl  = document.getElementById('evDesc');
+    const dateEl  = document.getElementById('evDate');
+    const timeEl  = document.getElementById('evTime');
+    const maxEl   = document.getElementById('evMax');
+    const commEl  = document.getElementById('evCommunity');
+
+    const title   = titleEl.value.trim();
+    const desc    = descEl.value.trim();
+    const date    = dateEl.value;
+    const time    = timeEl.value;
+    const max     = parseInt(maxEl.value);
+    const commId  = parseInt(commEl.value);
+
+    let isValid   = true;
+
+    document.querySelectorAll('.error-msg').forEach(e => { e.textContent = ''; e.classList.remove('show'); });
+    document.querySelectorAll('.field-error').forEach(e => e.classList.remove('field-error'));
+
+    const showError = (el, msg, errId) => {
+        const errEl = document.getElementById(errId);
+        if (errEl) { errEl.textContent = msg; errEl.classList.add('show'); }
+        if (el) el.classList.add('field-error');
+        isValid = false;
+    };
+
+    if (title.length < 3)  showError(titleEl, 'Title must be at least 3 characters', 'err-title');
+    if (desc.length < 10)  showError(descEl,  'Description must be at least 10 characters', 'err-desc');
+    if (!date)             showError(dateEl,  'Date is required', 'err-date');
+    else {
+        const sel = new Date(date);
+        const today = new Date(); today.setHours(0,0,0,0);
+        if (sel < today) showError(dateEl, 'Select a valid future date', 'err-date');
+    }
+    if (!time) showError(timeEl, 'Time is required', 'err-time');
+    if (!max || max <= 0) showError(maxEl, 'Capacity must be greater than 0', 'err-max');
+    if (!commId) { if (window.toast) window.toast('Community is required', 'error'); isValid = false; }
+
+    if (!isValid) {
+        if (window.toast) window.toast('Please correct the highlighted fields.', 'error');
+        document.querySelector('.field-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        return;
+    }
+
+    try {
+        const newEvent = await window.API.events.create({
+            title,
+            description: desc,
+            communityId: commId,
+            date,
+            time,
+            type: selectedEventType,
+            attendees: 0,
+            maxAttendees: max,
+            status: 'upcoming',
+        });
+        _events.unshift(newEvent);
+        if (window.toast) window.toast(`"${title}" created successfully! 🚀`);
+        resetForm();
+        const btn = document.querySelector('.tab-btn[onclick*="upcoming"]');
+        switchTab('upcoming', btn || document.querySelector('.tab-btn'));
+        renderAll();
+    } catch (err) {
+        if (window.toast) window.toast('Could not create event: ' + err.message, 'error');
+    }
+}
+
+function resetForm() {
+    const form = document.getElementById('createEventForm');
+    if (form) form.reset();
+}
+
+function populateCommunityDropdown() {
+    const dropdown = document.getElementById('evCommunity');
+    if (!dropdown) return;
+    dropdown.innerHTML = _communities.map(c =>
+        `<option value="${c.id}">${c.icon || '🏘️'} ${c.name}</option>`
+    ).join('');
+}
+
+// ── UI ────────────────────────────────────────────────────────────────────────
+window.switchTab = function (name, btn) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+    document.getElementById('tab-' + name)?.classList.add('active');
     currentActiveTab = name;
-    renderEvents();
+    renderAll();
 };
 
 window.toggleChip = function (el) {
-    document.querySelectorAll(".filter-chip").forEach((c) => c.classList.remove("on"));
-    el.classList.add("on");
-    activeFilter = el.textContent.toLowerCase().replace("✦ ", "");
-    renderEvents();
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('on'));
+    el.classList.add('on');
+    activeFilter = el.textContent.toLowerCase().replace('✦ ', '');
+    renderAll();
 };
 
-window.toggleReg = function (btn, eventId) {
-    let regList = JSON.parse(localStorage.getItem('nexus_registered_events') || '["e2"]');
-    const isRegistered = regList.includes(eventId);
-    const ev = window.NexusCRUD.getById('events', eventId);
-    if (!ev) return;
-
-    if (isRegistered) {
-        regList = regList.filter(id => id !== eventId);
-        btn.classList.remove("registered");
-        btn.textContent = "Register";
-        if (window.toast) window.toast(`Unregistered from ${ev.title}`);
-    } else {
-        regList.push(eventId);
-        btn.classList.add("registered");
-        btn.textContent = "✓ Registered";
-        if (window.toast) window.toast(`Successfully registered for ${ev.title}! 🎟`);
-    }
-    
-    localStorage.setItem('nexus_registered_events', JSON.stringify(regList));
-    renderEvents();
-};
-
-window.toggleLoadMoreEvents = function() {
-    const btn = document.getElementById('load-more-events-btn');
-    if (!btn) return;
-    btn.textContent = 'Loading...';
-    setTimeout(() => {
-        btn.textContent = 'No more events to load';
-        btn.disabled = true;
-    }, 1200);
-};
-
-window.registerFeaturedEvent = function(btn) {
-    const featEvent = window.NexusCRUD.getAll('events').find(e => e.status === 'upcoming');
-    if (featEvent) {
-        window.toggleReg(btn, featEvent.id);
-    }
-};
-
-window.setType = function(el, type) {
+window.setType = function (el, type) {
     document.querySelectorAll('.type-opt').forEach(opt => opt.classList.remove('on'));
     el.classList.add('on');
-    updatePreview();
+    selectedEventType = type;
 };
 
-window.updatePreview = function() {
-    const title = document.getElementById('evTitle').value || 'Your event title';
-    const date = document.getElementById('evDate').value || 'Select a date';
-    const time = document.getElementById('evTime').value || 'time';
-    
+window.updatePreview = function () {
+    const title   = document.getElementById('evTitle')?.value   || 'Your event title';
+    const date    = document.getElementById('evDate')?.value    || 'Select a date';
+    const time    = document.getElementById('evTime')?.value    || 'time';
+    const commId  = parseInt(document.getElementById('evCommunity')?.value);
+    const comm    = _communities.find(c => c.id === commId) || { name: 'Community', icon: '🎮' };
+
     const prevTitle = document.getElementById('prevTitle');
-    const prevDate = document.getElementById('prevDate');
-    
+    const prevDate  = document.getElementById('prevDate');
     if (prevTitle) prevTitle.textContent = title;
-    if (prevDate) prevDate.textContent = `🗓 ${date} at ${time}`;
+    if (prevDate)  prevDate.textContent  = `🗓 ${date} at ${time}`;
 };
 
-// --- 4. STARTUP ---
-document.addEventListener("DOMContentLoaded", () => {
-    renderEvents();
-    
-    // URL Parameter handling for deep linking to a specific event
-    const urlParams = new URLSearchParams(window.location.search);
-    const eventId = urlParams.get("id");
-    if (eventId) {
-        setTimeout(() => {
-            const el = document.querySelector(`[data-event-id="${eventId}"]`);
-            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 500);
-    }
-
-    console.log("%c[Events] %cSynchronized with Platform Store.", "color: #5B6EF5; font-weight: bold;", "color: #10B981;");
+// ── Init ──────────────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadData();
+    populateCommunityDropdown();
+    initForm();
+    renderAll();
+    console.log('%c[Events] %cLive backend data loaded.', 'color: #5B6EF5; font-weight: bold;', 'color: #10B981;');
 });

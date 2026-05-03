@@ -48,8 +48,7 @@ const NAV_ADMIN = {
   items: [
         { id: 'admin-dash',name: 'Admin Dashboard',   link: 'admin-dashboard.html', icon: '⚡', badge: 'ADMIN' },
         { id: 'users',     name: 'User Management',   link: 'admin-dashboard.html#users',   icon: '👤' },
-        { id: 'comms',     name: 'Communities',       link: 'admin-dashboard.html#comms',   icon: '🏘️' },
-        { id: 'settings',  name: 'Platform Settings', link: 'admin-dashboard.html#settings',icon: '🔧' },
+        { id: 'communities',name: 'Communities',       link: 'admin-dashboard.html#communities',   icon: '🏘️' },
         { id: 'audit',     name: 'Audit Logs',        link: 'admin-dashboard.html#audit',   icon: '📋' },
   ],
 };
@@ -127,9 +126,16 @@ function _renderSection(section) {
 
 function _renderSidebar(user) {
   const role     = localStorage.getItem('role') || user?.role || 'gamer';
-  const username = user?.username || 'Guest';
-  const initials = username.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase()
-                   || username.slice(0, 2).toUpperCase();
+  let displayName = user?.fullName || (user?.firstName ? `${user.firstName} ${user.lastName || ''}`.trim() : null) || user?.username || 'Guest';
+  
+  // Compute initials based on what we have
+  let initials = "U";
+  if (user?.firstName || user?.lastName) {
+      initials = (user.firstName?.[0] || "") + (user.lastName?.[0] || "");
+  } else if (displayName !== 'Guest') {
+      initials = displayName.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || displayName.slice(0, 2).toUpperCase();
+  }
+  
   const meta     = ROLE_META[role] || ROLE_META.gamer;
   const sections = _getSections(role);
   const colClass = _collapsed ? ' collapsed' : '';
@@ -174,7 +180,7 @@ function _renderSidebar(user) {
           ${initials}
         </div>
         <div class="sb-profile__info">
-          <div class="sb-profile__name">${username}</div>
+          <div class="sb-profile__name">${displayName}</div>
           <div class="sb-profile__role" style="color:${meta.color}">
             ${meta.badge
               ? `<span class="sb-profile__badge"

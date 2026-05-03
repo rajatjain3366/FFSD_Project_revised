@@ -66,4 +66,10 @@ export class ReportsService {
       throw new BadRequestException(`targetId ${targetId} does not match existing ${targetType}`);
     }
   }
+
+  remove(id: number): { message: string } {
+    this.findOne(id);
+    db.reports = db.reports.filter((item) => item.id !== id);
+    return { message: `Report ${id} deleted` };
+  }
 }
